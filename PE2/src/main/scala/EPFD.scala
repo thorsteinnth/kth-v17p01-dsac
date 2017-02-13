@@ -5,6 +5,11 @@ import se.sics.kompics.sl.{Init, _}
 import se.sics.kompics.timer.{ScheduleTimeout, Timeout, Timer}
 import se.sics.kompics.{KompicsEvent, Start, ComponentDefinition => _, Port => _}
 
+/*
+* Doesn't work in IntelliJ. Don't have access to the se.kth.edx packages I think.
+* Switching to Zeppelics again.
+* */
+
 //Custom messages to be used in the internal component implementation
 case class CheckTimeout(timeout: ScheduleTimeout) extends Timeout(timeout);
 case class HeartbeatReply(seq: Int) extends KompicsEvent;
