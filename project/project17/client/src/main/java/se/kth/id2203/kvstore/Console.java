@@ -63,16 +63,18 @@ public class Console implements Runnable {
     }
 
     {
-        commands.put("op", new Command() {
+        commands.put("get", new Command() {
 
             @Override
             public boolean execute(String[] cmdline, ClientService worker) {
+
                 if (cmdline.length == 2) {
                     Future<OpResponse> fr = worker.op(cmdline[1]);
-                    out.println("Operation sent! Awaiting response...");
+                    out.println("GET operation sent! Awaiting response...");
                     try {
                         OpResponse r = fr.get();
-                        out.println("Operation complete! Response was: " + r.status);
+                        out.println("GET operation complete!");
+                        out.println("Response: status= " + r.status + " result= " + r.result);
                         return true;
                     } catch (InterruptedException | ExecutionException ex) {
                         ex.printStackTrace(out);
@@ -86,12 +88,12 @@ public class Console implements Runnable {
 
             @Override
             public String usage() {
-                return "op <key>";
+                return "get <key>";
             }
 
             @Override
             public String help() {
-                return "Just a test operation...replace with proper put get";
+                return "Get value by key";
             }
         });
         commands.put("help", new Command() {
