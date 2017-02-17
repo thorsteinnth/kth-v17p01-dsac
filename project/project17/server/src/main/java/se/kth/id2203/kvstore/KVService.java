@@ -34,6 +34,8 @@ import se.sics.kompics.ComponentDefinition;
 import se.sics.kompics.Positive;
 import se.sics.kompics.network.Network;
 
+import java.util.HashMap;
+
 /**
  *
  * @author Lars Kroll <lkroll@kth.se>
@@ -41,24 +43,46 @@ import se.sics.kompics.network.Network;
 public class KVService extends ComponentDefinition {
 
     final static Logger LOG = LoggerFactory.getLogger(KVService.class);
+
     //******* Ports ******
     protected final Positive<Network> net = requires(Network.class);
     protected final Positive<Routing> route = requires(Routing.class);
+
     //******* Fields ******
     final NetAddress self = config().getValue("id2203.project.address", NetAddress.class);
+    private HashMap<String, String> dataStore;
+
     //******* Handlers ******
     protected final ClassMatchedHandler<Operation, Message> opHandler = new ClassMatchedHandler<Operation, Message>() {
 
         @Override
         public void handle(Operation content, Message context) {
-            LOG.info("Got operation {}! Now implement me please :)", content);
-            trigger(new Message(self, context.getSource(), new OpResponse(content.id, Code.NOT_IMPLEMENTED)), net);
+
+            // TODO Handle if we can't find the value in our datastore
+
+            LOG.info("Got operation {}", content);
+            String value = dataStore.get(content.key);
+
+            trigger(new Message(self, context.getSource(), new OpResponse(content.id, Code.OK, value)), net);
         }
 
     };
 
     {
         subscribe(opHandler, net);
+        generatePreloadedData();
+    }
+
+    // TODO Remove this.
+    // Just add temp preloaded data to all nodes. All nodes get the same data, no partitioning stuff.
+    private void generatePreloadedData()
+    {
+        this.dataStore = new HashMap<>();
+
+        for (int i = 0; i < 10; i++)
+        {
+            this.dataStore.put(Integer.toString(i), "This is datavalue " + Integer.toString(i));
+        }
     }
 
 }

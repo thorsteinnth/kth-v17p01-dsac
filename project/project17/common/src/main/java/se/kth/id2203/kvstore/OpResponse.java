@@ -38,10 +38,12 @@ public class OpResponse implements KompicsEvent, Serializable {
 
     public final UUID id;
     public final Code status;
+    public final String result;
 
-    public OpResponse(UUID id, Code status) {
+    public OpResponse(UUID id, Code status, String result) {
         this.id = id;
         this.status = status;
+        this.result = result;
     }
 
     @Override
@@ -49,6 +51,7 @@ public class OpResponse implements KompicsEvent, Serializable {
         return MoreObjects.toStringHelper(this)
                 .add("id", id)
                 .add("status", status)
+                .add("result", result)
                 .toString();
     }
 

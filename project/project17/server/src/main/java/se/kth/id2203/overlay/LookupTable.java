@@ -69,7 +69,11 @@ public class LookupTable implements NodeAssignment {
 
     static LookupTable generate(ImmutableSet<NetAddress> nodes) {
         LookupTable lut = new LookupTable();
+
+        // TODO Figure out how to paritition
+        // Just putting all nodes in same partition, under key 0
         lut.partitions.putAll(0, nodes);
+
         return lut;
     }
 
