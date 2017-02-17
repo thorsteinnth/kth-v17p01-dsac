@@ -27,6 +27,9 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.TreeMultimap;
 import java.util.Collection;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import se.kth.id2203.bootstrapping.NodeAssignment;
 import se.kth.id2203.networking.NetAddress;
 
@@ -40,13 +43,35 @@ public class LookupTable implements NodeAssignment {
 
     private final TreeMultimap<Integer, NetAddress> partitions = TreeMultimap.create();
 
+    final static Logger LOG = LoggerFactory.getLogger(LookupTable.class);
+
     public Collection<NetAddress> lookup(String key) {
-        int keyHash = key.hashCode();
+        /*int keyHash = key.hashCode();
         Integer partition = partitions.keySet().floor(keyHash);
         if (partition == null) {
             partition = partitions.keySet().last();
         }
-        return partitions.get(partition);
+        return partitions.get(partition);*/
+
+        // TODO We are assuming that the partition keys are 0...n,
+        // so the partition index we get from modulus corresponds to a key in the partition map
+        // This may not be the case ... what if a partition is removed? There is no guarantee that the partition keys
+        // will be an unbroken sequence of numbers
+
+        int keyHash = key.hashCode();
+        Integer partitionIndex = keyHash % partitions.size();
+
+        if (partitions.keySet().contains(partitionIndex))
+        {
+            LOG.debug("Lookup for key " + key + " - partition index: " + partitionIndex + " - partition key: " + partitionIndex);
+            return partitions.get(partitionIndex);
+        }
+        else
+        {
+            // The index does not exist as a key in the parition map, default to last partition
+            LOG.debug("Lookup for key " + key + " - partition index: " + partitionIndex + " - partition key: " + partitions.keySet().last());
+            return partitions.get(partitions.keySet().last());
+        }
     }
 
     public Collection<NetAddress> getNodes() {
@@ -70,9 +95,13 @@ public class LookupTable implements NodeAssignment {
     static LookupTable generate(ImmutableSet<NetAddress> nodes) {
         LookupTable lut = new LookupTable();
 
-        // TODO Figure out how to paritition
-        // Just putting all nodes in same partition, under key 0
-        lut.partitions.putAll(0, nodes);
+        // TODO Figure out how to partition
+        // Let's put one node per key to begin with
+        int i = 0;
+        for (NetAddress node : nodes)
+        {
+            lut.partitions.put(i++, node);
+        }
 
         return lut;
     }
