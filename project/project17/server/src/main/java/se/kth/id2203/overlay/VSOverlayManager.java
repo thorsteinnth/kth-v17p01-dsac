@@ -25,12 +25,15 @@ package se.kth.id2203.overlay;
 
 import com.larskroll.common.J6;
 import java.util.Collection;
+import java.util.HashSet;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import se.kth.id2203.bootstrapping.Booted;
 import se.kth.id2203.bootstrapping.Bootstrapping;
 import se.kth.id2203.bootstrapping.GetInitialAssignments;
 import se.kth.id2203.bootstrapping.InitialAssignments;
+import se.kth.id2203.broadcast.BestEffortBroadcastPort;
 import se.kth.id2203.networking.Message;
 import se.kth.id2203.networking.NetAddress;
 import se.sics.kompics.ClassMatchedHandler;
@@ -55,17 +58,18 @@ public class VSOverlayManager extends ComponentDefinition {
 
     final static Logger LOG = LoggerFactory.getLogger(VSOverlayManager.class);
 
-    //******* Ports ******
+    // Ports
     protected final Negative<Routing> route = provides(Routing.class);
     protected final Positive<Bootstrapping> boot = requires(Bootstrapping.class);
     protected final Positive<Network> net = requires(Network.class);
     protected final Positive<Timer> timer = requires(Timer.class);
+    protected final Positive<BestEffortBroadcastPort> beb = requires(BestEffortBroadcastPort.class);
 
-    //******* Fields ******
+    // Fields
     final NetAddress self = config().getValue("id2203.project.address", NetAddress.class);
     private LookupTable lut = null;
 
-    //******* Handlers ******
+    //region Handlers
 
     protected final Handler<GetInitialAssignments> initialAssignmentHandler = new Handler<GetInitialAssignments>() {
 
@@ -85,6 +89,7 @@ public class VSOverlayManager extends ComponentDefinition {
             if (event.assignment instanceof LookupTable) {
                 LOG.info("Got NodeAssignment, overlay ready.");
                 lut = (LookupTable) event.assignment;
+                sendTopologyToBroadcaster();
             } else {
                 LOG.error("Got invalid NodeAssignment type. Expected: LookupTable; Got: {}", event.assignment.getClass());
             }
@@ -126,6 +131,14 @@ public class VSOverlayManager extends ComponentDefinition {
             }
         }
     };
+
+    //endregion
+
+    private void sendTopologyToBroadcaster()
+    {
+        LOG.info("Sending topology to broadcaster");
+        trigger(new Topology(new HashSet<>(lut.getNodes())), beb);
+    }
 
     {
         subscribe(initialAssignmentHandler, boot);
