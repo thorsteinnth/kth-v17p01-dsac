@@ -46,10 +46,12 @@ import se.sics.kompics.timer.Timer;
 public class BootstrapServer extends ComponentDefinition {
 
     final static Logger LOG = LoggerFactory.getLogger(BootstrapServer.class);
+
     //******* Ports ******
     protected final Negative<Bootstrapping> boot = provides(Bootstrapping.class);
     protected final Positive<Network> net = requires(Network.class);
     protected final Positive<Timer> timer = requires(Timer.class);
+
     //******* Fields ******
     final NetAddress self = config().getValue("id2203.project.address", NetAddress.class);
     final int bootThreshold = config().getValue("id2203.project.bootThreshold", Integer.class);
@@ -58,7 +60,9 @@ public class BootstrapServer extends ComponentDefinition {
     private final Set<NetAddress> active = new HashSet<>();
     private final Set<NetAddress> ready = new HashSet<>();
     private NodeAssignment initialAssignment = null;
+
     //******* Handlers ******
+
     protected final Handler<Start> startHandler = new Handler<Start>() {
         @Override
         public void handle(Start e) {
@@ -71,6 +75,7 @@ public class BootstrapServer extends ComponentDefinition {
             active.add(self);
         }
     };
+
     protected final Handler<BSTimeout> timeoutHandler = new Handler<BSTimeout>() {
         @Override
         public void handle(BSTimeout e) {
@@ -91,6 +96,7 @@ public class BootstrapServer extends ComponentDefinition {
             }
         }
     };
+
     protected final Handler<InitialAssignments> assignmentHandler = new Handler<InitialAssignments>() {
         @Override
         public void handle(InitialAssignments e) {
@@ -102,6 +108,7 @@ public class BootstrapServer extends ComponentDefinition {
             ready.add(self);
         }
     };
+
     protected final ClassMatchedHandler<CheckIn, Message> checkinHandler = new ClassMatchedHandler<CheckIn, Message>() {
 
         @Override
@@ -109,6 +116,7 @@ public class BootstrapServer extends ComponentDefinition {
             active.add(context.getSource());
         }
     };
+
     protected final ClassMatchedHandler<Ready, Message> readyHandler = new ClassMatchedHandler<Ready, Message>() {
         @Override
         public void handle(Ready content, Message context) {

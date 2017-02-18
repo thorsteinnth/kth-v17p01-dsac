@@ -54,15 +54,19 @@ import se.sics.kompics.timer.Timer;
 public class VSOverlayManager extends ComponentDefinition {
 
     final static Logger LOG = LoggerFactory.getLogger(VSOverlayManager.class);
+
     //******* Ports ******
     protected final Negative<Routing> route = provides(Routing.class);
     protected final Positive<Bootstrapping> boot = requires(Bootstrapping.class);
     protected final Positive<Network> net = requires(Network.class);
     protected final Positive<Timer> timer = requires(Timer.class);
+
     //******* Fields ******
     final NetAddress self = config().getValue("id2203.project.address", NetAddress.class);
     private LookupTable lut = null;
+
     //******* Handlers ******
+
     protected final Handler<GetInitialAssignments> initialAssignmentHandler = new Handler<GetInitialAssignments>() {
 
         @Override
@@ -73,6 +77,7 @@ public class VSOverlayManager extends ComponentDefinition {
             trigger(new InitialAssignments(lut), boot);
         }
     };
+
     protected final Handler<Booted> bootHandler = new Handler<Booted>() {
 
         @Override
@@ -85,6 +90,7 @@ public class VSOverlayManager extends ComponentDefinition {
             }
         }
     };
+
     protected final ClassMatchedHandler<RouteMsg, Message> routeHandler = new ClassMatchedHandler<RouteMsg, Message>() {
 
         @Override
@@ -95,6 +101,7 @@ public class VSOverlayManager extends ComponentDefinition {
             trigger(new Message(context.getSource(), target, content.msg), net);
         }
     };
+
     protected final Handler<RouteMsg> localRouteHandler = new Handler<RouteMsg>() {
 
         @Override
@@ -105,6 +112,7 @@ public class VSOverlayManager extends ComponentDefinition {
             trigger(new Message(self, target, event.msg), net);
         }
     };
+
     protected final ClassMatchedHandler<Connect, Message> connectHandler = new ClassMatchedHandler<Connect, Message>() {
 
         @Override
