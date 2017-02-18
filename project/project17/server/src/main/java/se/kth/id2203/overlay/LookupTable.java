@@ -39,6 +39,8 @@ import se.kth.id2203.networking.NetAddress;
  */
 public class LookupTable implements NodeAssignment {
 
+    // Let's use consistent hashing
+
     private static final long serialVersionUID = -8766981433378303267L;
 
     private final TreeMultimap<Integer, NetAddress> partitions = TreeMultimap.create();
@@ -46,32 +48,32 @@ public class LookupTable implements NodeAssignment {
     final static Logger LOG = LoggerFactory.getLogger(LookupTable.class);
 
     public Collection<NetAddress> lookup(String key) {
-        /*int keyHash = key.hashCode();
-        Integer partition = partitions.keySet().floor(keyHash);
-        if (partition == null) {
-            partition = partitions.keySet().last();
-        }
-        return partitions.get(partition);*/
 
-        // TODO We are assuming that the partition keys are 0...n,
-        // so the partition index we get from modulus corresponds to a key in the partition map
-        // This may not be the case ... what if a partition is removed? There is no guarantee that the partition keys
-        // will be an unbroken sequence of numbers
+        int keyHash = hashKey(key);
 
-        int keyHash = key.hashCode();
-        Integer partitionIndex = keyHash % partitions.size();
+        // A partition is responsible for the keys >= its own key
+        Integer partitionKey = partitions.keySet().floor(keyHash);
 
-        if (partitions.keySet().contains(partitionIndex))
+        if (partitionKey == null)
         {
-            LOG.debug("Lookup for key " + key + " - partition index: " + partitionIndex + " - partition key: " + partitionIndex);
-            return partitions.get(partitionIndex);
+            // Did not find the partition by looking down from the key hash
+            // Selecting the last partition
+            partitionKey = partitions.keySet().last();
         }
-        else
-        {
-            // The index does not exist as a key in the parition map, default to last partition
-            LOG.debug("Lookup for key " + key + " - partition index: " + partitionIndex + " - partition key: " + partitions.keySet().last());
-            return partitions.get(partitions.keySet().last());
-        }
+
+        LOG.debug("Lookup for key " + key + " - key hash: " + keyHash + " - partition key: " + partitionKey);
+
+        return partitions.get(partitionKey);
+    }
+
+    private static int hashKey(String key)
+    {
+        return key.hashCode() % 100;
+    }
+
+    private static int hashNode(NetAddress node)
+    {
+        return node.hashCode() % 100;
     }
 
     public Collection<NetAddress> getNodes() {
@@ -95,12 +97,10 @@ public class LookupTable implements NodeAssignment {
     static LookupTable generate(ImmutableSet<NetAddress> nodes) {
         LookupTable lut = new LookupTable();
 
-        // TODO Figure out how to partition
-        // Let's put one node per key to begin with
-        int i = 0;
+        // TODO Replication degree
         for (NetAddress node : nodes)
         {
-            lut.partitions.put(i++, node);
+            lut.partitions.put(hashNode(node), node);
         }
 
         return lut;
