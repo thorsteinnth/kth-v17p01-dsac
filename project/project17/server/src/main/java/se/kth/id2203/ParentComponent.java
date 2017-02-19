@@ -54,6 +54,7 @@ public class ParentComponent
         connect(net, overlay.getNegative(Network.class), Channel.TWO_WAY);
         // KV
         connect(overlay.getPositive(Routing.class), kv.getNegative(Routing.class), Channel.TWO_WAY);
+        connect(rb.getPositive(ReliableBroadcastPort.class), kv.getNegative(ReliableBroadcastPort.class), Channel.TWO_WAY);
         connect(net, kv.getNegative(Network.class), Channel.TWO_WAY);
         // Best effort broadcast
         connect(net, beb.getNegative(Network.class), Channel.TWO_WAY);

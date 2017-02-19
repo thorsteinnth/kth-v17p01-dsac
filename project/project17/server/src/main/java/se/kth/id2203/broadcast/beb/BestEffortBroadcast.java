@@ -43,8 +43,6 @@ public class BestEffortBroadcast extends ComponentDefinition
         @Override
         public void handle(BEBBroadcast e)
         {
-            LOG.info("Will best effort broadcast: " + e.payload);
-
             for (NetAddress node : topology)
             {
                 trigger(new Message(self, node, e), net);
@@ -66,12 +64,7 @@ public class BestEffortBroadcast extends ComponentDefinition
             if (e.payload instanceof BEBBroadcast)
             {
                 BEBBroadcast bebBroadcast = (BEBBroadcast) e.payload;
-                LOG.info("Received best effort broadcast: " + bebBroadcast.payload);
                 trigger(new BEBDeliver(e.getSource(), bebBroadcast.payload), beb);
-            }
-            else
-            {
-                LOG.error("Received unexpected message of type: " + e.getClass());
             }
         }
     };

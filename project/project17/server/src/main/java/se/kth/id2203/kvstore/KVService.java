@@ -25,36 +25,35 @@ package se.kth.id2203.kvstore;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import se.kth.id2203.broadcast.rb.RBDeliver;
+import se.kth.id2203.broadcast.rb.ReliableBroadcastPort;
 import se.kth.id2203.kvstore.OpResponse.Code;
 import se.kth.id2203.networking.Message;
 import se.kth.id2203.networking.NetAddress;
 import se.kth.id2203.overlay.Routing;
-import se.sics.kompics.ClassMatchedHandler;
-import se.sics.kompics.ComponentDefinition;
-import se.sics.kompics.Positive;
+import se.sics.kompics.*;
 import se.sics.kompics.network.Network;
 
 import java.util.HashMap;
 
-/**
- *
- * @author Lars Kroll <lkroll@kth.se>
- */
 public class KVService extends ComponentDefinition {
 
-    final static Logger LOG = LoggerFactory.getLogger(KVService.class);
+    private final static Logger LOG = LoggerFactory.getLogger(KVService.class);
 
-    //******* Ports ******
+    // Ports
     protected final Positive<Network> net = requires(Network.class);
     protected final Positive<Routing> route = requires(Routing.class);
+    // TODO Do we want to receive broadcast messages here in this component?
+    protected final Positive<ReliableBroadcastPort> rb = requires(ReliableBroadcastPort.class);
 
-    //******* Fields ******
+    // Fields
     final NetAddress self = config().getValue("id2203.project.address", NetAddress.class);
     private HashMap<String, String> dataStore;
 
-    //******* Handlers ******
-    protected final ClassMatchedHandler<Operation, Message> opHandler = new ClassMatchedHandler<Operation, Message>() {
+    //region Handlers
 
+    protected final ClassMatchedHandler<Operation, Message> opHandler = new ClassMatchedHandler<Operation, Message>()
+    {
         @Override
         public void handle(Operation content, Message context) {
 
@@ -65,13 +64,18 @@ public class KVService extends ComponentDefinition {
 
             trigger(new Message(self, context.getSource(), new OpResponse(content.id, Code.OK, value)), net);
         }
-
     };
 
+    protected final Handler<RBDeliver> incomingBroadcastHandler = new Handler<RBDeliver>()
     {
-        subscribe(opHandler, net);
-        generatePreloadedData();
-    }
+        @Override
+        public void handle(RBDeliver rbDeliver)
+        {
+            LOG.info("Received RB broadcast - Source: " + rbDeliver.source + " - Payload: " + rbDeliver.payload);
+        }
+    };
+
+    //endregion
 
     // TODO Remove this.
     // Just add temp preloaded data to all nodes. All nodes get the same data, no partitioning stuff.
@@ -85,4 +89,9 @@ public class KVService extends ComponentDefinition {
         }
     }
 
+    {
+        subscribe(opHandler, net);
+        subscribe(incomingBroadcastHandler, rb);
+        generatePreloadedData();
+    }
 }
