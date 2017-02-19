@@ -69,10 +69,6 @@ public class BestEffortBroadcast extends ComponentDefinition
                 LOG.info("Received best effort broadcast: " + bebBroadcast.payload);
                 trigger(new BEBDeliver(e.getSource(), bebBroadcast.payload), beb);
             }
-            else
-            {
-                LOG.error("Received unexpected message of type: " + e.getClass());
-            }
         }
     };
 
