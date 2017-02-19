@@ -2,7 +2,9 @@ package se.kth.id2203.broadcast;
 
 import se.sics.kompics.KompicsEvent;
 
-public class BEBBroadcast implements KompicsEvent
+import java.io.Serializable;
+
+public class BEBBroadcast implements KompicsEvent, Serializable
 {
     public final KompicsEvent payload;
 

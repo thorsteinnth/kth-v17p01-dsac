@@ -29,11 +29,10 @@ import java.util.HashSet;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import se.kth.id2203.bootstrapping.Booted;
-import se.kth.id2203.bootstrapping.Bootstrapping;
-import se.kth.id2203.bootstrapping.GetInitialAssignments;
-import se.kth.id2203.bootstrapping.InitialAssignments;
+import se.kth.id2203.bootstrapping.*;
+import se.kth.id2203.broadcast.BEBBroadcast;
 import se.kth.id2203.broadcast.BestEffortBroadcastPort;
+import se.kth.id2203.broadcast.BroadcastMessage;
 import se.kth.id2203.networking.Message;
 import se.kth.id2203.networking.NetAddress;
 import se.sics.kompics.ClassMatchedHandler;
@@ -104,6 +103,7 @@ public class VSOverlayManager extends ComponentDefinition {
             NetAddress target = J6.randomElement(partition);
             LOG.info("Forwarding message for key {} to {}", content.key, target);
             trigger(new Message(context.getSource(), target, content.msg), net);
+            broadcastTestMessage(); // TODO Remove
         }
     };
 
@@ -138,6 +138,13 @@ public class VSOverlayManager extends ComponentDefinition {
     {
         LOG.info("Sending topology to broadcaster");
         trigger(new Topology(new HashSet<>(lut.getNodes())), beb);
+    }
+
+    // TODO Remove
+    private void broadcastTestMessage()
+    {
+        LOG.info("Requesting broadcast of test message");
+        trigger(new BEBBroadcast(new BroadcastMessage("test message")), beb);
     }
 
     {
