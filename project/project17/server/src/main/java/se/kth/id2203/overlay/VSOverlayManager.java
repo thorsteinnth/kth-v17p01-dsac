@@ -30,9 +30,10 @@ import java.util.HashSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import se.kth.id2203.bootstrapping.*;
-import se.kth.id2203.broadcast.BEBBroadcast;
-import se.kth.id2203.broadcast.BestEffortBroadcastPort;
 import se.kth.id2203.broadcast.BroadcastMessage;
+import se.kth.id2203.broadcast.beb.BestEffortBroadcastPort;
+import se.kth.id2203.broadcast.rb.RBBroadcast;
+import se.kth.id2203.broadcast.rb.ReliableBroadcastPort;
 import se.kth.id2203.networking.Message;
 import se.kth.id2203.networking.NetAddress;
 import se.sics.kompics.ClassMatchedHandler;
@@ -63,6 +64,7 @@ public class VSOverlayManager extends ComponentDefinition {
     protected final Positive<Network> net = requires(Network.class);
     protected final Positive<Timer> timer = requires(Timer.class);
     protected final Positive<BestEffortBroadcastPort> beb = requires(BestEffortBroadcastPort.class);
+    protected final Positive<ReliableBroadcastPort> rb = requires(ReliableBroadcastPort.class);
 
     // Fields
     final NetAddress self = config().getValue("id2203.project.address", NetAddress.class);
@@ -136,7 +138,9 @@ public class VSOverlayManager extends ComponentDefinition {
 
     private void sendTopologyToBroadcaster()
     {
-        LOG.info("Sending topology to broadcaster");
+        // Sending topology directly to the BEB broadcaster
+        // (not sending it through the reliable broadcaster)
+        LOG.info("Sending topology to BEB broadcaster");
         trigger(new Topology(new HashSet<>(lut.getNodes())), beb);
     }
 
@@ -144,7 +148,7 @@ public class VSOverlayManager extends ComponentDefinition {
     private void broadcastTestMessage()
     {
         LOG.info("Requesting broadcast of test message");
-        trigger(new BEBBroadcast(new BroadcastMessage("test message")), beb);
+        trigger(new RBBroadcast(new BroadcastMessage("test message")), rb);
     }
 
     {

@@ -4,8 +4,10 @@ import com.google.common.base.Optional;
 import se.kth.id2203.bootstrapping.BootstrapClient;
 import se.kth.id2203.bootstrapping.BootstrapServer;
 import se.kth.id2203.bootstrapping.Bootstrapping;
-import se.kth.id2203.broadcast.BestEffortBroadcast;
-import se.kth.id2203.broadcast.BestEffortBroadcastPort;
+import se.kth.id2203.broadcast.beb.BestEffortBroadcast;
+import se.kth.id2203.broadcast.beb.BestEffortBroadcastPort;
+import se.kth.id2203.broadcast.rb.ReliableBroadcast;
+import se.kth.id2203.broadcast.rb.ReliableBroadcastPort;
 import se.kth.id2203.kvstore.KVService;
 import se.kth.id2203.networking.NetAddress;
 import se.kth.id2203.overlay.Routing;
@@ -29,6 +31,7 @@ public class ParentComponent
     protected final Component kv = create(KVService.class, Init.NONE);
     protected final Component boot;
     protected final Component beb = create(BestEffortBroadcast.class, Init.NONE);
+    protected final Component rb = create(ReliableBroadcast.class, Init.NONE);
 
     {
 
@@ -43,11 +46,14 @@ public class ParentComponent
         // Overlay
         connect(boot.getPositive(Bootstrapping.class), overlay.getNegative(Bootstrapping.class), Channel.TWO_WAY);
         connect(beb.getPositive(BestEffortBroadcastPort.class), overlay.getNegative(BestEffortBroadcastPort.class), Channel.TWO_WAY);
+        connect(rb.getPositive(ReliableBroadcastPort.class), overlay.getNegative(ReliableBroadcastPort.class), Channel.TWO_WAY);
         connect(net, overlay.getNegative(Network.class), Channel.TWO_WAY);
         // KV
         connect(overlay.getPositive(Routing.class), kv.getNegative(Routing.class), Channel.TWO_WAY);
         connect(net, kv.getNegative(Network.class), Channel.TWO_WAY);
         // Best effort broadcast
         connect(net, beb.getNegative(Network.class), Channel.TWO_WAY);
+        // Reliable broadcast
+        connect(beb.getPositive(BestEffortBroadcastPort.class), rb.getNegative(BestEffortBroadcastPort.class), Channel.TWO_WAY);
     }
 }
