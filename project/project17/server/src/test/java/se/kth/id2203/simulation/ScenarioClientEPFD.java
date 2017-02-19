@@ -12,6 +12,7 @@ import se.sics.kompics.Handler;
 import se.sics.kompics.Positive;
 import se.sics.kompics.Start;
 import se.sics.kompics.network.Network;
+import se.sics.kompics.simulator.util.GlobalView;
 import se.sics.kompics.timer.Timer;
 import sun.nio.ch.Net;
 
@@ -38,6 +39,7 @@ public class ScenarioClientEPFD extends ComponentDefinition {
         @Override
         public void handle(Start event) {
 
+            GlobalView globalView = config().getValue("simulation.globalView", GlobalView.class);
         }
     };
 

@@ -20,9 +20,10 @@ public class EPFDTest {
 
     @Test
     public void epfdCompleteness() {
+
         long seed = 122;
         SimulationScenario.setSeed(seed);
-        SimulationScenario simpleEPFDScenario = ScenarioGen.epfdCompleteness(3);
+        SimulationScenario simpleEPFDScenario = ScenarioGen.epfdCompleteness(4, 1);
 
         simpleEPFDScenario.simulate(LauncherComp.class);
 

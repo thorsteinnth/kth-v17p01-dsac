@@ -213,7 +213,7 @@ public abstract class ScenarioGen {
         }
     };
 
-    public static SimulationScenario epfdCompleteness(final int servers) {
+    public static SimulationScenario epfdCompleteness(final int servers, final int clients) {
         return new SimulationScenario() {
             {
                 SimulationScenario.StochasticProcess startCluster = new SimulationScenario.StochasticProcess() {
@@ -226,7 +226,7 @@ public abstract class ScenarioGen {
                 SimulationScenario.StochasticProcess startClients = new SimulationScenario.StochasticProcess() {
                     {
                         eventInterArrivalTime(constant(1000));
-                        raise(1, startClientEPFD, new BasicIntSequentialDistribution(1));
+                        raise(clients, startClientEPFD, new BasicIntSequentialDistribution(1));
                     }
                 };
 
