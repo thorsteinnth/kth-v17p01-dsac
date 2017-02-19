@@ -1,4 +1,4 @@
-package se.kth.id2203.broadcast;
+package se.kth.id2203.broadcast.beb;
 
 import se.sics.kompics.KompicsEvent;
 

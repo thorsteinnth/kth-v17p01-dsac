@@ -1,4 +1,4 @@
-package se.kth.id2203.broadcast;
+package se.kth.id2203.broadcast.beb;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
