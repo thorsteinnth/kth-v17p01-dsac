@@ -92,7 +92,7 @@ public abstract class ScenarioGen {
         }
     };
 
-    private static final Operation1 startClientOp = new Operation1<StartNodeEvent, Integer>() {
+    private static final Operation1 startClientGetOp = new Operation1<StartNodeEvent, Integer>() {
 
         @Override
         public StartNodeEvent generate(final Integer self) {
@@ -116,7 +116,7 @@ public abstract class ScenarioGen {
 
                 @Override
                 public Class getComponentDefinition() {
-                    return ScenarioClient.class;
+                    return ScenarioClientGet.class;
                 }
 
                 @Override
@@ -153,7 +153,7 @@ public abstract class ScenarioGen {
                 SimulationScenario.StochasticProcess startClients = new SimulationScenario.StochasticProcess() {
                     {
                         eventInterArrivalTime(constant(1000));
-                        raise(1, startClientOp, new BasicIntSequentialDistribution(1));
+                        raise(1, startClientGetOp, new BasicIntSequentialDistribution(1));
                     }
                 };
                 startCluster.start();

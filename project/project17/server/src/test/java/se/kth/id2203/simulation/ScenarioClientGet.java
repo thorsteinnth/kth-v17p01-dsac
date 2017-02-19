@@ -45,9 +45,9 @@ import se.sics.kompics.timer.Timer;
  *
  * @author Lars Kroll <lkroll@kth.se>
  */
-public class ScenarioClient extends ComponentDefinition {
+public class ScenarioClientGet extends ComponentDefinition {
 
-    final static Logger LOG = LoggerFactory.getLogger(ScenarioClient.class);
+    final static Logger LOG = LoggerFactory.getLogger(ScenarioClientGet.class);
     //******* Ports ******
     protected final Positive<Network> net = requires(Network.class);
     protected final Positive<Timer> timer = requires(Timer.class);
