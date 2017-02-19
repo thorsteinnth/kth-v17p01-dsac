@@ -29,10 +29,9 @@ public class EPFD extends ComponentDefinition{
     // - Configuration parameters
     private final NetAddress self = config().getValue("id2203.project.address", NetAddress.class);
     private Set<NetAddress> topology = new HashSet<>();
-    private long delta = config().getValue("id2203.project.epfd.delay", Long.class);
+    private long delta = config().getValue("id2203.project.epfd.delay.debug", Long.class);
 
     // - Mutable state
-    private Long period = config().getValue("id2203.project.epfd.delay", Long.class);
     private Set<NetAddress> alive;
     private Set<NetAddress> suspected;
     private int seqNum;
@@ -44,12 +43,11 @@ public class EPFD extends ComponentDefinition{
         @Override
         public void handle(Start event) {
 
-            LOG.debug("Starting EPFD on {}", self);
+            LOG.info("Starting EPFD on {}", self);
             seqNum = 0;
-            alive = new HashSet<>(topology);
+            alive = new HashSet<>();
             suspected = new HashSet<>();
             delay = delta;
-            startTimer(delay);
         }
     };
 
@@ -60,12 +58,16 @@ public class EPFD extends ComponentDefinition{
         {
             LOG.info("Received topology: " + e.nodes);
             topology = e.nodes;
+
+            alive.addAll(topology);
+            startTimer(delay);
         }
     };
 
-    protected final Handler<BSTimeout> timeoutHandler = new Handler<BSTimeout>() {
+    protected final Handler<CheckTimeout> timeoutHandler = new Handler<CheckTimeout>() {
+
         @Override
-        public void handle(BSTimeout e) {
+        public void handle(CheckTimeout e) {
 
             LOG.info("EPFD received timeout");
             Set<NetAddress> suspectedAndAlive = new HashSet<>(alive);
@@ -80,10 +82,12 @@ public class EPFD extends ComponentDefinition{
             for (NetAddress process : topology) {
 
                 if(!alive.contains(process) && !suspected.contains(process)) {
+                    LOG.info("EPFD suspects: " + process.toString());
                     suspected.add(process);
                     trigger(new Suspect(process), epfd);
                 }
                 else if (alive.contains(process) && suspected.contains(process)) {
+                    LOG.info("EPFD restores: " + process.toString());
                     suspected.remove(process);
                     trigger(new Restore(process), epfd);
                 }
@@ -93,7 +97,7 @@ public class EPFD extends ComponentDefinition{
             }
 
             alive.clear();
-            startTimer(period);
+            startTimer(delay);
         }
     };
 
@@ -106,12 +110,16 @@ public class EPFD extends ComponentDefinition{
 
                 HeartbeatRequest heartbeatRequest = (HeartbeatRequest) e.payload;
 
+                //LOG.info("EPFD: received REQUEST from " + e.getSource());
+
                 KompicsEvent heartbeatReply = new HeartbeatReply(heartbeatRequest.getSeq());
                 trigger(new Message(self, e.getSource(), heartbeatReply), net);
             }
             else if (e.payload instanceof HeartbeatReply) {
 
                 HeartbeatReply heartbeatReply = (HeartbeatReply) e.payload;
+
+                //LOG.info("EPFD: received REPLY from " + e.getSource());
 
                 if (heartbeatReply.getSeq() == seqNum || suspected.contains(e.getSource())) {
                     alive.add(e.getSource());
@@ -122,12 +130,14 @@ public class EPFD extends ComponentDefinition{
 
     private void startTimer(Long delay) {
 
-        ScheduleTimeout scheduleTimeout = new ScheduleTimeout(this.period);
+        LOG.info("EPFD start timer with delay " + delay.toString());
+        ScheduleTimeout scheduleTimeout = new ScheduleTimeout(delay);
         scheduleTimeout.setTimeoutEvent(new CheckTimeout(scheduleTimeout));
         trigger(scheduleTimeout, timer);
     }
 
     {
+        subscribe(startHandler, control);
         subscribe(topologyHandler, epfd);
         subscribe(timeoutHandler, timer);
         subscribe(messageHandler, net);

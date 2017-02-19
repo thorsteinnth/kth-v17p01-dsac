@@ -34,6 +34,8 @@ import se.kth.id2203.broadcast.BroadcastMessage;
 import se.kth.id2203.broadcast.beb.BestEffortBroadcastPort;
 import se.kth.id2203.broadcast.rb.RBBroadcast;
 import se.kth.id2203.broadcast.rb.ReliableBroadcastPort;
+import se.kth.id2203.epfd.EPFD;
+import se.kth.id2203.epfd.EPFDPort;
 import se.kth.id2203.networking.Message;
 import se.kth.id2203.networking.NetAddress;
 import se.sics.kompics.ClassMatchedHandler;
@@ -65,6 +67,7 @@ public class VSOverlayManager extends ComponentDefinition {
     protected final Positive<Timer> timer = requires(Timer.class);
     protected final Positive<BestEffortBroadcastPort> beb = requires(BestEffortBroadcastPort.class);
     protected final Positive<ReliableBroadcastPort> rb = requires(ReliableBroadcastPort.class);
+    protected final Positive<EPFDPort> epfd = requires(EPFDPort.class);
 
     // Fields
     final NetAddress self = config().getValue("id2203.project.address", NetAddress.class);
@@ -91,6 +94,7 @@ public class VSOverlayManager extends ComponentDefinition {
                 LOG.info("Got NodeAssignment, overlay ready.");
                 lut = (LookupTable) event.assignment;
                 sendTopologyToBroadcaster();
+                sendTopologyToFailureDetector();
             } else {
                 LOG.error("Got invalid NodeAssignment type. Expected: LookupTable; Got: {}", event.assignment.getClass());
             }
@@ -142,6 +146,12 @@ public class VSOverlayManager extends ComponentDefinition {
         // (not sending it through the reliable broadcaster)
         LOG.info("Sending topology to BEB broadcaster");
         trigger(new Topology(new HashSet<>(lut.getNodes())), beb);
+    }
+
+    private void sendTopologyToFailureDetector()
+    {
+        LOG.info("Sending topology to EPFD");
+        trigger(new Topology(new HashSet<>(lut.getNodes())), epfd);
     }
 
     // TODO Remove
