@@ -47,8 +47,7 @@ public class ReliableBroadcast extends ComponentDefinition
             if (bebDeliver.payload instanceof OriginatedBroadcastMessage)
             {
                 OriginatedBroadcastMessage obm = (OriginatedBroadcastMessage)bebDeliver.payload;
-
-                // TODO This is not working. Probably checking if it is the same object, not comparing.
+                
                 if (!delivered.contains(obm.payload))
                 {
                     // Have not delivered this message before
