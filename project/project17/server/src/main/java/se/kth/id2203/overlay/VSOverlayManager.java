@@ -30,11 +30,8 @@ import java.util.HashSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import se.kth.id2203.bootstrapping.*;
-import se.kth.id2203.broadcast.BroadcastMessage;
 import se.kth.id2203.broadcast.beb.BestEffortBroadcastPort;
-import se.kth.id2203.broadcast.rb.RBBroadcast;
 import se.kth.id2203.broadcast.rb.ReliableBroadcastPort;
-import se.kth.id2203.epfd.EPFD;
 import se.kth.id2203.epfd.EPFDPort;
 import se.kth.id2203.networking.Message;
 import se.kth.id2203.networking.NetAddress;
@@ -56,7 +53,8 @@ import se.sics.kompics.timer.Timer;
  * <p>
  * @author Lars Kroll <lkroll@kth.se>
  */
-public class VSOverlayManager extends ComponentDefinition {
+public class VSOverlayManager extends ComponentDefinition
+{
 
     final static Logger LOG = LoggerFactory.getLogger(VSOverlayManager.class);
 
@@ -75,10 +73,12 @@ public class VSOverlayManager extends ComponentDefinition {
 
     //region Handlers
 
-    protected final Handler<GetInitialAssignments> initialAssignmentHandler = new Handler<GetInitialAssignments>() {
+    protected final Handler<GetInitialAssignments> initialAssignmentHandler = new Handler<GetInitialAssignments>()
+    {
 
         @Override
-        public void handle(GetInitialAssignments event) {
+        public void handle(GetInitialAssignments event)
+        {
             LOG.info("Generating LookupTable...");
             LookupTable lut = LookupTable.generate(event.nodes);
             LOG.debug("Generated assignments:\n{}", lut);
@@ -86,37 +86,44 @@ public class VSOverlayManager extends ComponentDefinition {
         }
     };
 
-    protected final Handler<Booted> bootHandler = new Handler<Booted>() {
+    protected final Handler<Booted> bootHandler = new Handler<Booted>()
+    {
 
         @Override
-        public void handle(Booted event) {
-            if (event.assignment instanceof LookupTable) {
+        public void handle(Booted event)
+        {
+            if (event.assignment instanceof LookupTable)
+            {
                 LOG.info("Got NodeAssignment, overlay ready.");
                 lut = (LookupTable) event.assignment;
                 sendTopologyToBroadcaster();
                 sendTopologyToFailureDetector();
-            } else {
+            } else
+            {
                 LOG.error("Got invalid NodeAssignment type. Expected: LookupTable; Got: {}", event.assignment.getClass());
             }
         }
     };
 
-    protected final ClassMatchedHandler<RouteMsg, Message> routeHandler = new ClassMatchedHandler<RouteMsg, Message>() {
+    protected final ClassMatchedHandler<RouteMsg, Message> routeHandler = new ClassMatchedHandler<RouteMsg, Message>()
+    {
 
         @Override
-        public void handle(RouteMsg content, Message context) {
+        public void handle(RouteMsg content, Message context)
+        {
             Collection<NetAddress> partition = lut.lookup(content.key);
             NetAddress target = J6.randomElement(partition);
             LOG.info("Forwarding message for key {} to {}", content.key, target);
             trigger(new Message(context.getSource(), target, content.msg), net);
-            broadcastTestMessage(); // TODO Remove
         }
     };
 
-    protected final Handler<RouteMsg> localRouteHandler = new Handler<RouteMsg>() {
+    protected final Handler<RouteMsg> localRouteHandler = new Handler<RouteMsg>()
+    {
 
         @Override
-        public void handle(RouteMsg event) {
+        public void handle(RouteMsg event)
+        {
             Collection<NetAddress> partition = lut.lookup(event.key);
             NetAddress target = J6.randomElement(partition);
             LOG.info("Routing message for key {} to {}", event.key, target);
@@ -124,15 +131,19 @@ public class VSOverlayManager extends ComponentDefinition {
         }
     };
 
-    protected final ClassMatchedHandler<Connect, Message> connectHandler = new ClassMatchedHandler<Connect, Message>() {
+    protected final ClassMatchedHandler<Connect, Message> connectHandler = new ClassMatchedHandler<Connect, Message>()
+    {
 
         @Override
-        public void handle(Connect content, Message context) {
-            if (lut != null) {
+        public void handle(Connect content, Message context)
+        {
+            if (lut != null)
+            {
                 LOG.debug("Accepting connection request from {}", context.getSource());
                 int size = lut.getNodes().size();
                 trigger(new Message(self, context.getSource(), content.ack(size)), net);
-            } else {
+            } else
+            {
                 LOG.info("Rejecting connection request from {}, as system is not ready, yet.", context.getSource());
             }
         }
@@ -152,13 +163,6 @@ public class VSOverlayManager extends ComponentDefinition {
     {
         LOG.info("Sending topology to EPFD");
         trigger(new Topology(new HashSet<>(lut.getNodes())), epfd);
-    }
-
-    // TODO Remove
-    private void broadcastTestMessage()
-    {
-        LOG.info("Requesting broadcast of test message");
-        trigger(new RBBroadcast(new BroadcastMessage("test message")), rb);
     }
 
     {
