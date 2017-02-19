@@ -32,7 +32,7 @@ public class ReliableBroadcast extends ComponentDefinition
         @Override
         public void handle(RBBroadcast rbBroadcast)
         {
-            LOG.info("Will reliably broadcast: " + rbBroadcast.payload);
+            LOG.info("Will broadcast: " + rbBroadcast.payload);
             trigger(new BEBBroadcast(new OriginatedBroadcastMessage(self, rbBroadcast.payload)), beb);
         }
     };
@@ -42,15 +42,14 @@ public class ReliableBroadcast extends ComponentDefinition
         @Override
         public void handle(BEBDeliver bebDeliver)
         {
-            LOG.info("Received broadcast: " + bebDeliver.payload);
-
             if (bebDeliver.payload instanceof OriginatedBroadcastMessage)
             {
                 OriginatedBroadcastMessage obm = (OriginatedBroadcastMessage)bebDeliver.payload;
-                
+
                 if (!delivered.contains(obm.payload))
                 {
                     // Have not delivered this message before
+                    LOG.info("Will deliver: " + obm.payload);
 
                     // Deliver message and mark it delivered
                     delivered.add(obm.payload);

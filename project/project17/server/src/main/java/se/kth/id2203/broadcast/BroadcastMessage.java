@@ -14,6 +14,14 @@ public class BroadcastMessage implements KompicsEvent, Serializable
     }
 
     @Override
+    public String toString()
+    {
+        return "BroadcastMessage{" +
+                "message='" + message + '\'' +
+                '}';
+    }
+
+    @Override
     public boolean equals(Object o)
     {
         if (this == o) return true;
