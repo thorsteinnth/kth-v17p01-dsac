@@ -71,18 +71,28 @@ public class BroadcastTestObserver extends ComponentDefinition
 
             if (gv.getAliveNodes().size() >= minNumberOfRequiredNodes + 1) // +1 is the observer itself
             {
-                LOG.info("Have " + gv.getAliveNodes().size() + " alive nodes. Starting broadcast test on first node.");
+                LOG.info("Have " + gv.getAliveNodes().size() +
+                        " alive nodes. Sending GetTopology to all nodes and starting broadcast test on first node.");
 
-                // Find first node in alive nodes that isn't myself, and make it start a broadcast
+                // Make all other nodes get topology.
+                // Also find first node in alive nodes that isn't myself, and make it start a broadcast
+                NetAddress broadcastInitiator = null;
                 Collection<Address> nodeAddresses = gv.getAliveNodes().values();
                 for (Address address : nodeAddresses)
                 {
                     NetAddress destNetAddress = new NetAddress(address.getIp(), address.getPort());
                     if (!destNetAddress.equals(self))
                     {
-                        trigger(new Message(self, destNetAddress, new StartBroadcastTest()), net);
-                        break;
+                        trigger(new Message(self, destNetAddress, new GetTopology()), net);
+
+                        if (broadcastInitiator == null)
+                            broadcastInitiator = destNetAddress;
                     }
+                }
+
+                if (broadcastInitiator != null)
+                {
+                    trigger(new Message(self, broadcastInitiator, new StartBroadcastTest()), net);
                 }
 
                 // Cancel the timer, we have done what we need to do

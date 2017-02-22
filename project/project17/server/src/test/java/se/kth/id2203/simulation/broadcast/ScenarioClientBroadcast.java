@@ -34,20 +34,24 @@ public class ScenarioClientBroadcast extends ComponentDefinition
 
     //region Handlers
 
-    private final Handler<Message> startBroadcastTestHandler = new Handler<Message>()
+    private final Handler<Message> observerMessageHandler = new Handler<Message>()
     {
         @Override
         public void handle(Message message)
         {
             if (message.payload instanceof StartBroadcastTest)
             {
-                LOG.info("Starting broadcast test. Sending topology to BEB: " + getNodes());
-
-                // Give the BEB implementation the topology
-                trigger(new Topology(getNodes()), beb);
+                LOG.info(self + " - Starting broadcast");
 
                 // Broadcast a message
                 trigger(new RBBroadcast(new BroadcastMessage("test message")), rb);
+            }
+            else if (message.payload instanceof GetTopology)
+            {
+                LOG.info(self + " - Sending topology to BEB: " + getNodes());
+
+                // Give the BEB implementation the topology
+                trigger(new Topology(getNodes()), beb);
             }
         }
     };
@@ -75,7 +79,7 @@ public class ScenarioClientBroadcast extends ComponentDefinition
     }
 
     {
-        subscribe(startBroadcastTestHandler, net);
+        subscribe(observerMessageHandler, net);
         subscribe(incomingBroadcastHandler, rb);
     }
 }
