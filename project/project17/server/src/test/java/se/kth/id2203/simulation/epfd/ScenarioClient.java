@@ -6,6 +6,7 @@ import se.kth.id2203.epfd.EPFDPort;
 import se.kth.id2203.epfd.Restore;
 import se.kth.id2203.epfd.Suspect;
 import se.kth.id2203.networking.NetAddress;
+import se.kth.id2203.overlay.Topology;
 import se.kth.id2203.simulation.ScenarioClientGet;
 import se.sics.kompics.ComponentDefinition;
 import se.sics.kompics.Handler;
@@ -17,7 +18,9 @@ import se.sics.kompics.simulator.network.identifier.Identifier;
 import se.sics.kompics.simulator.util.GlobalView;
 import se.sics.kompics.timer.Timer;
 
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 public class ScenarioClient extends ComponentDefinition {
 
@@ -40,12 +43,18 @@ public class ScenarioClient extends ComponentDefinition {
         public void handle(Start event) {
 
             GlobalView globalView = config().getValue("simulation.globalview", GlobalView.class);
+            Set<NetAddress> nodes = new HashSet<>();
 
             for (Map.Entry<Identifier, Address> entry : globalView.getAliveNodes().entrySet())
             {
                 LOG.debug("EPFD Test: Printing global view");
                 LOG.debug(entry.getKey() + "/" + entry.getValue());
+
+                nodes.add(new NetAddress(entry.getValue().getIp(), entry.getValue().getPort()));
             }
+
+            LOG.info("Sending topology to EPFD");
+            trigger(new Topology(nodes), epfd);
         }
     };
 

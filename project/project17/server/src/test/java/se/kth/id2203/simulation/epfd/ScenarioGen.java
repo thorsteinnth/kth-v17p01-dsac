@@ -27,6 +27,7 @@ import se.kth.id2203.networking.NetAddress;
 import se.sics.kompics.Init;
 import se.sics.kompics.network.Address;
 import se.sics.kompics.simulator.SimulationScenario;
+import se.sics.kompics.simulator.adaptor.Operation;
 import se.sics.kompics.simulator.adaptor.Operation1;
 import se.sics.kompics.simulator.adaptor.distributions.extra.BasicIntSequentialDistribution;
 import se.sics.kompics.simulator.events.system.KillNodeEvent;
@@ -92,6 +93,45 @@ public abstract class ScenarioGen {
         }
     };
 
+    static Operation startObserverOp = new Operation<StartNodeEvent>() {
+        @Override
+        public StartNodeEvent generate() {
+            return new StartNodeEvent() {
+                NetAddress selfAdr;
+
+                {
+                    try {
+                        selfAdr = new NetAddress(InetAddress.getByName("0.0.0.0"), 0);
+                    } catch (UnknownHostException ex) {
+                        throw new RuntimeException(ex);
+                    }
+                }
+
+                @Override
+                public Map<String, Object> initConfigUpdate() {
+                    HashMap<String, Object> config = new HashMap<>();
+                    config.put("epfd.simulation.checktimeout", 5000);
+                    return config;
+                }
+
+                @Override
+                public Address getNodeAddress() {
+                    return selfAdr;
+                }
+
+                @Override
+                public Class getComponentDefinition() {
+                    return SimulationObserver.class;
+                }
+
+                @Override
+                public Init getComponentInit() {
+                    return new SimulationObserver.Init(1);
+                }
+            };
+        }
+    };
+
     static Operation1 killClientOp = new Operation1<KillNodeEvent, Integer>() {
         @Override
         public KillNodeEvent generate(final Integer self) {
@@ -100,9 +140,8 @@ public abstract class ScenarioGen {
 
                 {
                     try {
-                        selfAdr = new NetAddress(InetAddress.getByName("192.168.1." + self), 10000);
+                        selfAdr = new NetAddress(InetAddress.getByName("192.168.1." + self), 45678);
                     } catch (UnknownHostException ex) {
-                        System.out.println("---- UNKW HOST EXC::");
                         throw new RuntimeException(ex);
                     }
                 }
@@ -130,16 +169,23 @@ public abstract class ScenarioGen {
                     }
                 };
 
+                SimulationScenario.StochasticProcess observer = new SimulationScenario.StochasticProcess() {
+                    {
+                        raise(1, startObserverOp);
+                    }
+                };
+
                 StochasticProcess killClients = new StochasticProcess() {
                     {
                         eventInterArrivalTime(constant(0));
-                        raise(clients, killClientOp, new BasicIntSequentialDistribution((1)));
+                        raise(2, killClientOp, new BasicIntSequentialDistribution((1)));
                     }
                 };
 
                 startClients.start();
-                killClients.startAfterStartOf(2000, startClients);
-                terminateAfterTerminationOf(100000, startClients);
+                observer.startAfterTerminationOf(0, startClients);
+                killClients.startAfterTerminationOf(2000, observer);
+                terminateAfterTerminationOf(100*100000, startClients);
             }
         };
     }
