@@ -39,10 +39,6 @@ import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- *
- * @author Lars Kroll <lkroll@kth.se>
- */
 public abstract class ScenarioGen {
 
     private static final Operation1 startClient = new Operation1<StartNodeEvent, Integer>() {
