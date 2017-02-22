@@ -1,25 +1,25 @@
-package se.kth.id2203.simulation;
+package se.kth.id2203.simulation.epfd;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import se.kth.id2203.epfd.EPFD;
 import se.kth.id2203.epfd.EPFDPort;
 import se.kth.id2203.epfd.Restore;
 import se.kth.id2203.epfd.Suspect;
 import se.kth.id2203.networking.NetAddress;
+import se.kth.id2203.simulation.ScenarioClientGet;
 import se.sics.kompics.ComponentDefinition;
 import se.sics.kompics.Handler;
 import se.sics.kompics.Positive;
 import se.sics.kompics.Start;
+import se.sics.kompics.network.Address;
 import se.sics.kompics.network.Network;
+import se.sics.kompics.simulator.network.identifier.Identifier;
 import se.sics.kompics.simulator.util.GlobalView;
 import se.sics.kompics.timer.Timer;
-import sun.nio.ch.Net;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.Map;
 
-public class ScenarioClientEPFD extends ComponentDefinition {
+public class ScenarioClient extends ComponentDefinition {
 
     final static Logger LOG = LoggerFactory.getLogger(ScenarioClientGet.class);
 
@@ -32,14 +32,20 @@ public class ScenarioClientEPFD extends ComponentDefinition {
     private final NetAddress self = config().getValue("id2203.project.address", NetAddress.class);
     private final NetAddress server = config().getValue("id2203.project.bootstrap-address", NetAddress.class);
 
-    private final SimulationResultEPFD res = SimulationResultEPFD.getInstance();
+    private final SimulationResult res = SimulationResult.getInstance();
 
     protected final Handler<Start> startHandler = new Handler<Start>() {
 
         @Override
         public void handle(Start event) {
 
-            GlobalView globalView = config().getValue("simulation.globalView", GlobalView.class);
+            GlobalView globalView = config().getValue("simulation.globalview", GlobalView.class);
+
+            for (Map.Entry<Identifier, Address> entry : globalView.getAliveNodes().entrySet())
+            {
+                LOG.debug("EPFD Test: Printing global view");
+                LOG.debug(entry.getKey() + "/" + entry.getValue());
+            }
         }
     };
 

@@ -1,26 +1,25 @@
-package se.kth.id2203.simulation;
+package se.kth.id2203.simulation.epfd;
 
-import se.kth.id2203.epfd.Suspect;
 import se.kth.id2203.networking.NetAddress;
 
 import java.util.HashSet;
 import java.util.Set;
 
-public class SimulationResultEPFD {
+public class SimulationResult {
 
     private static Set<NetAddress> suspected;
-    public static SimulationResultEPFD instance = null;
+    public static SimulationResult instance = null;
 
-    public synchronized static SimulationResultEPFD getInstance() {
+    public synchronized static SimulationResult getInstance() {
 
         if (instance == null) {
-            instance =  new SimulationResultEPFD();
+            instance =  new SimulationResult();
         }
 
         return instance;
     }
 
-    private SimulationResultEPFD() {
+    private SimulationResult() {
         this.suspected = new HashSet<>();
     }
 
