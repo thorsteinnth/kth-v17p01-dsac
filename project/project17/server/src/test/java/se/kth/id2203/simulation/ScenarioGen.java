@@ -147,6 +147,8 @@ public abstract class ScenarioGen {
 
     //region Broadcast operations
 
+    private static final String broadcastObserverIP = "0.0.0.0";
+
     static Operation startBroadcastObserver = new Operation<StartNodeEvent>()
     {
         @Override
@@ -158,7 +160,7 @@ public abstract class ScenarioGen {
                 {
                     try
                     {
-                        selfAdr = new NetAddress(InetAddress.getByName("0.0.0.0"), 0);
+                        selfAdr = new NetAddress(InetAddress.getByName(broadcastObserverIP), 0);
                     }
                     catch (UnknownHostException ex)
                     {
@@ -240,6 +242,17 @@ public abstract class ScenarioGen {
                 {
                     HashMap<String, Object> config = new HashMap<>();
                     config.put("id2203.project.address", selfAdr);
+
+                    try
+                    {
+                        config.put("id2203.project.observerAddress",
+                                new NetAddress(InetAddress.getByName(broadcastObserverIP), 0));
+                    }
+                    catch (UnknownHostException ex)
+                    {
+                        throw new RuntimeException(ex);
+                    }
+
                     return config;
                 }
             };
