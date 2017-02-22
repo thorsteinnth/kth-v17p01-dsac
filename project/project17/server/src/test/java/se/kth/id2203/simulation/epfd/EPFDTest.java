@@ -5,16 +5,10 @@ import org.junit.Test;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import se.kth.id2203.networking.NetAddress;
-import se.kth.id2203.simulation.ScenarioClientGet;
 import se.kth.id2203.simulation.SimulationResultMap;
 import se.kth.id2203.simulation.SimulationResultSingleton;
 import se.sics.kompics.simulator.SimulationScenario;
 import se.sics.kompics.simulator.run.LauncherComp;
-
-import java.util.Set;
-
-import static se.kth.id2203.simulation.epfd.ScenarioClient.LOG;
 
 public class EPFDTest {
 
@@ -25,7 +19,7 @@ public class EPFDTest {
     2. Eventual Strong Accuracy: No correct process should be eventually suspected by any other correct process
      */
 
-    private final static Logger LOG = LoggerFactory.getLogger(ScenarioClientGet.class);
+    private final static Logger LOG = LoggerFactory.getLogger(EPFDTest.class);
     private final SimulationResultMap res = SimulationResultSingleton.getInstance();
 
     @Test

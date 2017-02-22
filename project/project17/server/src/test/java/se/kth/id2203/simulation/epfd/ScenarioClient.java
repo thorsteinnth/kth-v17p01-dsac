@@ -7,7 +7,6 @@ import se.kth.id2203.epfd.Restore;
 import se.kth.id2203.epfd.Suspect;
 import se.kth.id2203.networking.NetAddress;
 import se.kth.id2203.overlay.Topology;
-import se.kth.id2203.simulation.ScenarioClientGet;
 import se.kth.id2203.simulation.SimulationResultMap;
 import se.kth.id2203.simulation.SimulationResultSingleton;
 import se.sics.kompics.ComponentDefinition;
@@ -26,7 +25,7 @@ import java.util.Set;
 
 public class ScenarioClient extends ComponentDefinition {
 
-    final static Logger LOG = LoggerFactory.getLogger(ScenarioClientGet.class);
+    final static Logger LOG = LoggerFactory.getLogger(ScenarioClient.class);
 
     // Ports
     protected final Positive<Network> net = requires(Network.class);

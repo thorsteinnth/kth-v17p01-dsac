@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package se.kth.id2203.simulation;
+package se.kth.id2203.simulation.ops;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.Map;
 import se.kth.id2203.ParentComponent;
 import se.kth.id2203.networking.NetAddress;
+import se.kth.id2203.simulation.ops.ScenarioClientGet;
 import se.sics.kompics.Init;
 import se.sics.kompics.network.Address;
 import se.sics.kompics.simulator.SimulationScenario;

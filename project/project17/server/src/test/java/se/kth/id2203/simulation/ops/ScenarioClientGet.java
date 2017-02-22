@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package se.kth.id2203.simulation;
+package se.kth.id2203.simulation.ops;
 
 import java.util.Map;
 import java.util.TreeMap;
@@ -33,6 +33,8 @@ import se.kth.id2203.kvstore.Operation;
 import se.kth.id2203.networking.Message;
 import se.kth.id2203.networking.NetAddress;
 import se.kth.id2203.overlay.RouteMsg;
+import se.kth.id2203.simulation.SimulationResultMap;
+import se.kth.id2203.simulation.SimulationResultSingleton;
 import se.sics.kompics.ClassMatchedHandler;
 import se.sics.kompics.ComponentDefinition;
 import se.sics.kompics.Handler;
