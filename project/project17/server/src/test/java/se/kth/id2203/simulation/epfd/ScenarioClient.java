@@ -8,6 +8,8 @@ import se.kth.id2203.epfd.Suspect;
 import se.kth.id2203.networking.NetAddress;
 import se.kth.id2203.overlay.Topology;
 import se.kth.id2203.simulation.ScenarioClientGet;
+import se.kth.id2203.simulation.SimulationResultMap;
+import se.kth.id2203.simulation.SimulationResultSingleton;
 import se.sics.kompics.ComponentDefinition;
 import se.sics.kompics.Handler;
 import se.sics.kompics.Positive;
@@ -35,7 +37,7 @@ public class ScenarioClient extends ComponentDefinition {
     private final NetAddress self = config().getValue("id2203.project.address", NetAddress.class);
     private final NetAddress server = config().getValue("id2203.project.bootstrap-address", NetAddress.class);
 
-    private final SimulationResult res = SimulationResult.getInstance();
+    private final SimulationResultMap res = SimulationResultSingleton.getInstance();
 
     protected final Handler<Start> startHandler = new Handler<Start>() {
 
@@ -63,7 +65,9 @@ public class ScenarioClient extends ComponentDefinition {
         @Override
         public void handle(Suspect suspect) {
             LOG.debug("EPFD Test: got a suspected process: " + suspect.getAddress());
-            res.addSuspect(suspect.getAddress());
+            //res.addSuspect(suspect.getAddress());
+            //LOG.info("Added suspect:: size= " + res.getSuspected().size() + " - " + res.getSuspected().toString());
+            res.put(suspect.getAddress().toString(), "suspect");
         }
     };
 
@@ -73,9 +77,11 @@ public class ScenarioClient extends ComponentDefinition {
         public void handle(Restore restore) {
             LOG.debug("EPFD Test: got a restoree process: " + restore.getAddress());
 
-            if (res.getSuspected().contains(restore.getAddress())) {
+            if (res.keySet().contains(restore.getAddress().toString())) {
                 LOG.debug("EPFD Test: removing a suspect: " + restore.getAddress());
-                res.removeSuspect(restore.getAddress());
+                res.remove(restore.getAddress().toString());
+
+                LOG.info("Removed suspect:: size= " + res.keySet().size() + " - " + res.keySet().toString());
             }
         }
     };

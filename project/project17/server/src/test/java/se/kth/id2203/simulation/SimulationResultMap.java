@@ -27,6 +27,7 @@ import java.util.Set;
 
 public interface SimulationResultMap {
     public void put(String key, Object o);
+    public void remove(String key);
     public <T> T get(String key, Class<T> tpe);
     public Set<String> keySet();
 }
