@@ -31,12 +31,14 @@ import se.kth.id2203.ParentComponent;
 import se.kth.id2203.networking.NetAddress;
 import se.kth.id2203.simulation.broadcast.BroadcastTestObserverParent;
 import se.kth.id2203.simulation.broadcast.ScenarioClientBroadcastParent;
+import se.kth.id2203.simulation.epfd.EPFDTest;
 import se.sics.kompics.Init;
 import se.sics.kompics.network.Address;
 import se.sics.kompics.simulator.SimulationScenario;
 import se.sics.kompics.simulator.adaptor.Operation;
 import se.sics.kompics.simulator.adaptor.Operation1;
 import se.sics.kompics.simulator.adaptor.distributions.extra.BasicIntSequentialDistribution;
+import se.sics.kompics.simulator.events.system.KillNodeEvent;
 import se.sics.kompics.simulator.events.system.StartNodeEvent;
 
 /**
