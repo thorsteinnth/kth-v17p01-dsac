@@ -25,6 +25,9 @@ package se.kth.id2203.simulation;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -74,4 +77,9 @@ public class SimulationResultSingleton implements SimulationResultMap {
         return (T) entries.get(key);
     }
 
+    @Override
+    public Set<String> keySet()
+    {
+        return new HashSet<>(Collections.list(entries.keys()));
+    }
 }

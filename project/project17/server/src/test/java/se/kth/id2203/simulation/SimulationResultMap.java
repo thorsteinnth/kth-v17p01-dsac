@@ -23,7 +23,10 @@
  */
 package se.kth.id2203.simulation;
 
+import java.util.Set;
+
 public interface SimulationResultMap {
     public void put(String key, Object o);
     public <T> T get(String key, Class<T> tpe);
+    public Set<String> keySet();
 }
