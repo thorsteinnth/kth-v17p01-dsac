@@ -178,14 +178,14 @@ public abstract class ScenarioGen {
                 StochasticProcess killClients = new StochasticProcess() {
                     {
                         eventInterArrivalTime(constant(0));
-                        raise(2, killClientOp, new BasicIntSequentialDistribution((1)));
+                        raise(3, killClientOp, new BasicIntSequentialDistribution((1)));
                     }
                 };
 
                 startClients.start();
-                observer.startAfterTerminationOf(0, startClients);
-                killClients.startAfterTerminationOf(2000, observer);
-                terminateAfterTerminationOf(100*100000, startClients);
+                //observer.startAfterTerminationOf(0, startClients);
+                killClients.startAfterTerminationOf(2000, startClients);
+                terminateAfterTerminationOf(100000, startClients);
             }
         };
     }

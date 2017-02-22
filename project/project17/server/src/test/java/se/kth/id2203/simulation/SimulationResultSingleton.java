@@ -73,6 +73,13 @@ public class SimulationResultSingleton implements SimulationResultMap {
     }
 
     @Override
+    public void remove(String key) {
+        if (entries.containsKey(key)) {
+            entries.remove(key);
+        }
+    }
+
+    @Override
     public <T> T get(String key, Class<T> tpe) {
         return (T) entries.get(key);
     }
