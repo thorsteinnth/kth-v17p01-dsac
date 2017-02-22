@@ -58,6 +58,8 @@ public class BestEffortBroadcast extends ComponentDefinition
         // And assume that the payload in the event is a BEBBroadcast?
         // The exercises had this wrapped in a PL_Deliver event
 
+        // TODO Use class matched handler instead? Can then match on the payload in the network message I think.
+
         @Override
         public void handle(Message e)
         {
