@@ -33,5 +33,8 @@ public class EPFDTest {
 
         LOG.debug("EPFDTest - number of suspects = " + res.keySet().size());
         Assert.assertEquals(3, res.keySet().size());
+
+        // Finish by clearing the result map
+        res.clear();
     }
 }

@@ -30,4 +30,5 @@ public interface SimulationResultMap {
     public void remove(String key);
     public <T> T get(String key, Class<T> tpe);
     public Set<String> keySet();
+    public void clear();
 }

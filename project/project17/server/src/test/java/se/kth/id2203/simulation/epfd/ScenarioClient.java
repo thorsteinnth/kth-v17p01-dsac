@@ -64,8 +64,6 @@ public class ScenarioClient extends ComponentDefinition {
         @Override
         public void handle(Suspect suspect) {
             LOG.debug("EPFD Test: got a suspected process: " + suspect.getAddress());
-            //res.addSuspect(suspect.getAddress());
-            //LOG.info("Added suspect:: size= " + res.getSuspected().size() + " - " + res.getSuspected().toString());
             res.put(suspect.getAddress().toString(), "suspect");
         }
     };
@@ -74,13 +72,9 @@ public class ScenarioClient extends ComponentDefinition {
 
         @Override
         public void handle(Restore restore) {
-            LOG.debug("EPFD Test: got a restoree process: " + restore.getAddress());
-
             if (res.keySet().contains(restore.getAddress().toString())) {
                 LOG.debug("EPFD Test: removing a suspect: " + restore.getAddress());
                 res.remove(restore.getAddress().toString());
-
-                LOG.info("Removed suspect:: size= " + res.keySet().size() + " - " + res.keySet().toString());
             }
         }
     };

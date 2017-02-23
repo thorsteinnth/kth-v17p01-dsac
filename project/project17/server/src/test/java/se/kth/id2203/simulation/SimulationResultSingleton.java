@@ -89,4 +89,9 @@ public class SimulationResultSingleton implements SimulationResultMap {
     {
         return new HashSet<>(Collections.list(entries.keys()));
     }
+
+    @Override
+    public void clear() {
+        this.entries.clear();
+    }
 }

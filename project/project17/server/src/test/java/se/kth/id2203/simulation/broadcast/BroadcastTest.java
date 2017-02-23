@@ -45,5 +45,8 @@ public class BroadcastTest
                 );
             }
         }
+
+        // Finish by clearing the result map
+        res.clear();
     }
 }
