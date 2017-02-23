@@ -1,5 +1,9 @@
 package se.kth.id2203.nnar;
 
+import se.kth.id2203.nnar.event.ARReadRequest;
+import se.kth.id2203.nnar.event.ARReadResponse;
+import se.kth.id2203.nnar.event.ARWriteRequest;
+import se.kth.id2203.nnar.event.ARWriteResponse;
 import se.sics.kompics.PortType;
 
 public final class AtomicRegisterPort extends PortType {

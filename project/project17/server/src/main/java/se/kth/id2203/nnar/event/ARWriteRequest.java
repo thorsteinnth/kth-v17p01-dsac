@@ -1,4 +1,4 @@
-package se.kth.id2203.nnar;
+package se.kth.id2203.nnar.event;
 
 import se.sics.kompics.KompicsEvent;
 
