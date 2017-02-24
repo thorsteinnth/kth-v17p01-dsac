@@ -100,7 +100,9 @@ public class LookupTable implements NodeAssignment {
         // TODO Replication degree
         for (NetAddress node : nodes)
         {
-            lut.partitions.put(hashNode(node), node);
+            // TODO Uncomment. Putting all nodes in same group to begin with.
+            //lut.partitions.put(hashNode(node), node);
+            lut.partitions.put(0, node);
         }
 
         return lut;
