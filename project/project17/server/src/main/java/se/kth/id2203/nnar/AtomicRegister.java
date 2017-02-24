@@ -2,14 +2,13 @@ package se.kth.id2203.nnar;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import se.kth.id2203.broadcast.OriginatedBroadcastMessage;
+import se.kth.id2203.broadcast.beb.BEBBroadcast;
 import se.kth.id2203.broadcast.beb.BEBDeliver;
 import se.kth.id2203.broadcast.beb.BestEffortBroadcastPort;
 import se.kth.id2203.networking.Message;
 import se.kth.id2203.networking.NetAddress;
-import se.kth.id2203.nnar.event.ACK;
-import se.kth.id2203.nnar.event.READ;
-import se.kth.id2203.nnar.event.VALUE;
-import se.kth.id2203.nnar.event.WRITE;
+import se.kth.id2203.nnar.event.*;
 import se.sics.kompics.*;
 import se.sics.kompics.network.Network;
 
@@ -52,6 +51,31 @@ public class AtomicRegister extends ComponentDefinition {
             rId = 0;
             readList = new HashMap<>();
             reading = false;
+        }
+    };
+
+    protected final Handler<ARReadRequest> readRequestHandler = new Handler<ARReadRequest>() {
+        @Override
+        public void handle(ARReadRequest arReadRequest) {
+
+            LOG.info("NNAR: Got a read request!");
+            rId = rId + 1;
+            acks = 0;
+            readList.clear();
+            reading = true;
+
+            KompicsEvent payload = new READ(rId);
+            trigger(new BEBBroadcast(new OriginatedBroadcastMessage(self, payload)), beb);
+        }
+    };
+
+    protected final Handler<ARWriteRequest> writeRequestHandler = new Handler<ARWriteRequest>() {
+        @Override
+        public void handle(ARWriteRequest arWriteRequest) {
+
+            LOG.info("NNAR: Got a write request!");
+
+            //TODO
         }
     };
 
@@ -105,5 +129,7 @@ public class AtomicRegister extends ComponentDefinition {
         subscribe(startHandler, control);
         subscribe(broadcastIncomingHandler, beb);
         subscribe(messageHandler, net);
+        subscribe(readRequestHandler, nnar);
+        subscribe(writeRequestHandler, nnar);
     }
 }
