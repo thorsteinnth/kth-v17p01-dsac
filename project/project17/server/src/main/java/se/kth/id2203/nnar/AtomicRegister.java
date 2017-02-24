@@ -74,8 +74,13 @@ public class AtomicRegister extends ComponentDefinition {
         public void handle(ARWriteRequest arWriteRequest) {
 
             LOG.info("NNAR: Got a write request!");
+            rId = rId + 1;
+            writeVal = arWriteRequest.getValue();
+            acks = 0;
+            readList.clear();
 
-            //TODO
+            KompicsEvent payload = new READ(rId);
+            trigger(new BEBBroadcast(new OriginatedBroadcastMessage(self, payload)), beb);
         }
     };
 
