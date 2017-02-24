@@ -59,6 +59,26 @@ public class Tuple {
         return false;
     }
 
+    /**
+     * checks if tuple is bigger then or equal to the input tuple
+     * @param tuple
+     * @return
+     */
+    public boolean biggerOrEqual(Tuple tuple)
+    {
+        // (2,2) <= (3,1) -> true
+        // (2,2) <= (2,2) -> true
+        // (2,2) <= (2,1) -> false
+
+        if (ts > tuple.getTs())
+            return true;
+
+        if (ts == tuple.getTs() && wr >= tuple.getWr())
+            return true;
+
+        return false;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

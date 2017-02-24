@@ -182,13 +182,8 @@ public class AtomicRegister extends ComponentDefinition {
 
                         for (Tuple tuple : readList.values()) {
 
-                            if (tuple.getTs() > highest.getTs()) {
+                            if (tuple.biggerOrEqual(highest)) {
                                 highest = tuple;
-                            }
-                            else if (tuple.getTs() == highest.getTs()) {
-                                if (tuple.getWr() > highest.getWr()) {
-                                    highest = tuple;
-                                }
                             }
                         }
 
