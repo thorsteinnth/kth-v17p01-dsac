@@ -43,22 +43,37 @@ public class Tuple {
     }
 
     /**
-     * Checks if pair one is bigger then pair two
-     * Timestamps first, use wr (rank) as tie breakers
-     * @param tupleOne
-     * @param tupleTwo
+     * Checks if tuple is bigger then input tuple
+     * @param tuple
      * @return
      */
-    public boolean biggerOrEqual(Tuple tupleOne, Tuple tupleTwo)
+    public boolean biggerThan(Tuple tuple) {
+
+        if (ts > tuple.getTs()) {
+
+            if (wr > tuple.getWr()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * checks if tuple is bigger then or equal to the input tuple
+     * @param tuple
+     * @return
+     */
+    public boolean biggerOrEqual(Tuple tuple)
     {
         // (2,2) <= (3,1) -> true
         // (2,2) <= (2,2) -> true
         // (2,2) <= (2,1) -> false
 
-        if (tupleOne.getTs() > tupleTwo.getTs())
+        if (ts > tuple.getTs())
             return true;
 
-        if (tupleOne.getTs() == tupleTwo.getTs() && tupleOne.getWr() >= tupleTwo.getWr())
+        if (ts == tuple.getTs() && wr >= tuple.getWr())
             return true;
 
         return false;
