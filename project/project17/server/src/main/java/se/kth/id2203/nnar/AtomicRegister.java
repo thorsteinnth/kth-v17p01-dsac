@@ -197,8 +197,8 @@ public class AtomicRegister extends ComponentDefinition {
                             broadcastVal = readVal;
                         }
                         else {
-                            highest.setWr(self.getPort()); //TODO : Need to change this, only works locally
-                            highest.setTs(highest.getTs() + 1);
+                            highest.setWr(self.hashCode());     // SelfRank
+                            highest.setTs(highest.getTs() + 1); // MaxTS
                             broadcastVal = writeVal;
                         }
 
