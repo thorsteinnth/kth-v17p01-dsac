@@ -9,11 +9,14 @@ import se.kth.id2203.broadcast.beb.BestEffortBroadcastPort;
 import se.kth.id2203.networking.Message;
 import se.kth.id2203.networking.NetAddress;
 import se.kth.id2203.nnar.event.*;
+import se.kth.id2203.overlay.Topology;
 import se.sics.kompics.*;
 import se.sics.kompics.network.Network;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 public class AtomicRegister extends ComponentDefinition {
 
@@ -26,6 +29,7 @@ public class AtomicRegister extends ComponentDefinition {
 
     // Fields
     private final NetAddress self = config().getValue("id2203.project.address", NetAddress.class);
+    private Set<NetAddress> topology = new HashSet<>();
 
     private Tuple tuple; //ts and wr
     private Object value;
@@ -43,6 +47,7 @@ public class AtomicRegister extends ComponentDefinition {
         public void handle(Start event) {
 
             LOG.info("Starting Atomic Register on {}", self);
+
             tuple = new Tuple(0, 0);
             value = null;
             acks = 0;
@@ -54,11 +59,23 @@ public class AtomicRegister extends ComponentDefinition {
         }
     };
 
+    // Here we are supposed to receive all the nodes that belong to the replication group
+    private final Handler<Topology> topologyHandler = new Handler<Topology>()
+    {
+        @Override
+        public void handle(Topology e)
+        {
+            LOG.info("Received topology: " + e.nodes);
+            topology = e.nodes;
+        }
+    };
+
     protected final Handler<ARReadRequest> readRequestHandler = new Handler<ARReadRequest>() {
         @Override
         public void handle(ARReadRequest arReadRequest) {
 
             LOG.info("NNAR: Got a read request!");
+
             rId = rId + 1;
             acks = 0;
             readList.clear();
@@ -74,6 +91,7 @@ public class AtomicRegister extends ComponentDefinition {
         public void handle(ARWriteRequest arWriteRequest) {
 
             LOG.info("NNAR: Got a write request!");
+
             rId = rId + 1;
             writeVal = arWriteRequest.getValue();
             acks = 0;
@@ -92,19 +110,30 @@ public class AtomicRegister extends ComponentDefinition {
 
             if (bebDeliver.payload instanceof READ) {
                 LOG.info("NNAR: Got broadcast deliver READ");
+
                 READ read = (READ) bebDeliver.payload;
 
-                trigger(new Message(
-                            self,
-                            bebDeliver.source,
-                            new VALUE(read.getrId(), tuple.getTs(), tuple.getWr(), value)), net
-                );
+                KompicsEvent payload = new VALUE(read.getrId(), tuple.getTs(), tuple.getWr(), value);
+                trigger(new Message(self, bebDeliver.source, payload), net);
             }
             else if (bebDeliver.payload instanceof WRITE) {
                 LOG.info("NNAR: Got broadcast deliver WRITE");
+
                 WRITE write = (WRITE) bebDeliver.payload;
 
-                //TODO
+                Tuple writeTuple = new Tuple(write.getTs(), write.getWr());
+
+                if(writeTuple.biggerThan(tuple)) {
+                    tuple.setTs(write.getTs());
+                    tuple.setWr(write.getWr());
+
+                    if(write.getOptionalWriteValue() != null) {
+                        value = write.getOptionalWriteValue();
+                    }
+
+                    KompicsEvent payload = new ACK(write.getrId());
+                    trigger(new Message(self, bebDeliver.source, payload), net);
+                }
             }
             else {
                 LOG.error("Received unexpected message of type: " + bebDeliver.payload.getClass());
@@ -120,18 +149,75 @@ public class AtomicRegister extends ComponentDefinition {
             if (e.payload instanceof ACK) {
                 LOG.info("NNAR: pp2p message handler ACK");
 
-                //TODO
+                ACK ack = (ACK) e.payload;
+
+                if (ack.getrId() == rId) {
+                    acks = acks + 1;
+
+                    int N = topology.size();
+                    if (acks > N/2) {
+                        acks = 0;
+
+                        if (reading) {
+                            reading = false;
+                            trigger(new ARReadResponse(readVal), nnar);
+                        }
+                        else {
+                            trigger(new ARWriteResponse(), nnar);
+                        }
+                    }
+                }
             }
             else if (e.payload instanceof VALUE) {
                 LOG.info("NNAR: pp2p message handler VALUE");
 
-                //TODO
+                VALUE val = (VALUE) e.payload;
+
+                if(val.getrId() == rId) {
+                    readList.put(e.getSource(), new Tuple(val.getTs(), val.getWr(), val.getOptionalValue()));
+
+                    int N = topology.size();
+                    if (readList.size() > N/2) {
+                        Tuple highest = new Tuple(0, 0);
+
+                        for (Tuple tuple : readList.values()) {
+
+                            if (tuple.getTs() > highest.getTs()) {
+                                highest = tuple;
+                            }
+                            else if (tuple.getTs() == highest.getTs()) {
+                                if (tuple.getWr() > highest.getWr()) {
+                                    highest = tuple;
+                                }
+                            }
+                        }
+
+                        if (highest.getOptionalValue() != null) {
+                            readVal = highest.getOptionalValue();
+                        }
+
+                        Object broadcastVal = null;
+
+                        if (reading) {
+                            broadcastVal = readVal;
+                        }
+                        else {
+                            highest.setWr(self.getPort()); //TODO : Need to change this, only works locally
+                            highest.setTs(highest.getTs() + 1);
+                            broadcastVal = writeVal;
+                        }
+
+                        KompicsEvent payload = new WRITE(rId, highest.getTs(), highest.getWr(), broadcastVal);
+                        trigger(new BEBBroadcast(new OriginatedBroadcastMessage(self, payload)), beb);
+                    }
+                }
             }
         }
     };
 
     {
         subscribe(startHandler, control);
+        subscribe(topologyHandler, nnar);
         subscribe(broadcastIncomingHandler, beb);
         subscribe(messageHandler, net);
         subscribe(readRequestHandler, nnar);

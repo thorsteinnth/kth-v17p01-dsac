@@ -43,16 +43,15 @@ public class Tuple {
     }
 
     /**
-     * Checks if pair one is bigger then pair two
-     * @param tupleOne
-     * @param tupleTwo
+     * Checks if tuple is bigger then input tuple
+     * @param tuple
      * @return
      */
-    public boolean biggerThan(Tuple tupleOne, Tuple tupleTwo) {
+    public boolean biggerThan(Tuple tuple) {
 
-        if (tupleOne.getTs() > tupleTwo.getTs()) {
+        if (ts > tuple.getTs()) {
 
-            if (tupleOne.getWr() > tupleTwo.getWr()) {
+            if (wr > tuple.getWr()) {
                 return true;
             }
         }
