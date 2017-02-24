@@ -40,15 +40,22 @@ public class OpsTest {
     private final SimulationResultMap res = SimulationResultSingleton.getInstance();
 
     @Test
-    public void simpleOpsTest() {
+    public void simpleOpsTest()
+    {
         long seed = 123;
         SimulationScenario.setSeed(seed);
         SimulationScenario simpleBootScenario = ScenarioGen.simpleOps(3);
         res.put("messages", NUM_MESSAGES);
         simpleBootScenario.simulate(LauncherComp.class);
-        for (int i = 0; i < NUM_MESSAGES; i++) {
-            Assert.assertEquals("OK", res.get("test"+i, String.class));
+
+        // We have (NUM_MESSAGES-1) operations that should be ok
+        for (int i = 0; i < NUM_MESSAGES-1; i++)
+        {
+            Assert.assertEquals("OK", res.get(Integer.toString(i), String.class));
         }
+
+        // And one more that should be not found
+        Assert.assertEquals("NOT_FOUND", res.get("NONSENSE", String.class));
     }
 
 }

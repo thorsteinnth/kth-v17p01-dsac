@@ -50,28 +50,43 @@ import se.sics.kompics.timer.Timer;
 public class ScenarioClientGet extends ComponentDefinition {
 
     final static Logger LOG = LoggerFactory.getLogger(ScenarioClientGet.class);
-    //******* Ports ******
+
+    // Ports
     protected final Positive<Network> net = requires(Network.class);
     protected final Positive<Timer> timer = requires(Timer.class);
-    //******* Fields ******
+
+    // Fields
     private final NetAddress self = config().getValue("id2203.project.address", NetAddress.class);
     private final NetAddress server = config().getValue("id2203.project.bootstrap-address", NetAddress.class);
     private final SimulationResultMap res = SimulationResultSingleton.getInstance();
     private final Map<UUID, String> pending = new TreeMap<>();
-    //******* Handlers ******
+
+    //region Handlers
+
     protected final Handler<Start> startHandler = new Handler<Start>() {
 
         @Override
-        public void handle(Start event) {
+        public void handle(Start event)
+        {
             int messages = res.get("messages", Integer.class);
-            for (int i = 0; i < messages; i++) {
-                Operation op = new Operation("test" + i);
+
+            // Let's send (messages-1) ops that should be OK
+            for (int i = 0; i < messages-1; i++) {
+                Operation op = new Operation(Integer.toString(i));
                 RouteMsg rm = new RouteMsg(op.key, op); // don't know which partition is responsible, so ask the bootstrap server to forward it
                 trigger(new Message(self, server, rm), net);
                 pending.put(op.id, op.key);
                 LOG.info("Sending {}", op);
                 res.put(op.key, "SENT");
             }
+
+            // Send one more that should be not found
+            Operation op = new Operation("NONSENSE");
+            RouteMsg rm = new RouteMsg(op.key, op); // don't know which partition is responsible, so ask the bootstrap server to forward it
+            trigger(new Message(self, server, rm), net);
+            pending.put(op.id, op.key);
+            LOG.info("Sending {}", op);
+            res.put(op.key, "SENT");
         }
     };
     protected final ClassMatchedHandler<OpResponse, Message> responseHandler = new ClassMatchedHandler<OpResponse, Message>() {
@@ -87,6 +102,8 @@ public class ScenarioClientGet extends ComponentDefinition {
             }
         }
     };
+
+    //endregion
 
     {
         subscribe(startHandler, control);

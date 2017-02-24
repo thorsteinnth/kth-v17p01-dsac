@@ -57,12 +57,13 @@ public class KVService extends ComponentDefinition {
         @Override
         public void handle(Operation content, Message context) {
 
-            // TODO Handle if we can't find the value in our datastore
-
             LOG.info("Got operation {}", content);
             String value = dataStore.get(content.key);
 
-            trigger(new Message(self, context.getSource(), new OpResponse(content.id, Code.OK, value)), net);
+            if (value == null)
+                trigger(new Message(self, context.getSource(), new OpResponse(content.id, Code.NOT_FOUND, value)), net);
+            else
+                trigger(new Message(self, context.getSource(), new OpResponse(content.id, Code.OK, value)), net);
         }
     };
 
