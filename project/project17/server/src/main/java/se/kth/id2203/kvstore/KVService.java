@@ -57,6 +57,7 @@ public class KVService extends ComponentDefinition {
         @Override
         public void handle(GetOperation operation, Message message) {
 
+            // TODO NNAR
             LOG.info("Got operation {}", operation);
             String value = dataStore.get(operation.key);
 
@@ -72,8 +73,10 @@ public class KVService extends ComponentDefinition {
         @Override
         public void handle(PutOperation operation, Message message)
         {
-            // TODO Handle
-            trigger(new Message(self, message.getSource(), new OpResponse(operation.id, Code.NOT_IMPLEMENTED, null)), net);
+            // TODO NNAR - right now this is only putting the new value in one node in the replication group
+            LOG.info("Got operation {}", operation);
+            String previousValue = dataStore.put(operation.key, operation.value);
+            trigger(new Message(self, message.getSource(), new OpResponse(operation.id, Code.OK, previousValue + " -> " + operation.value)), net);
         }
     };
 
