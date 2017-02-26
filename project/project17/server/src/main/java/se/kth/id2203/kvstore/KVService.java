@@ -80,6 +80,18 @@ public class KVService extends ComponentDefinition {
         }
     };
 
+    protected final ClassMatchedHandler<CASOperation, Message> casOpHandler = new ClassMatchedHandler<CASOperation, Message>()
+    {
+        @Override
+        public void handle(CASOperation operation, Message message)
+        {
+            // TODO Implement
+            // TODO: NNAR
+            LOG.info("Got operation {}", operation);
+            trigger(new Message(self, message.getSource(), new OpResponse(operation.id, Code.NOT_IMPLEMENTED, "not implemented")), net);
+        }
+    };
+
     protected final Handler<RBDeliver> incomingBroadcastHandler = new Handler<RBDeliver>()
     {
         @Override
@@ -106,6 +118,7 @@ public class KVService extends ComponentDefinition {
     {
         subscribe(getOpHandler, net);
         subscribe(putOpHandler, net);
+        subscribe(casOpHandler, net);
         subscribe(incomingBroadcastHandler, rb);
         generatePreloadedData();
     }

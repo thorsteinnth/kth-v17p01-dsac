@@ -104,8 +104,7 @@ public class Console implements Runnable {
             }
         });
 
-        commands.put("put", new Command()
-        {
+        commands.put("put", new Command() {
             @Override
             public boolean execute(String[] cmdline, ClientService worker)
             {
@@ -143,6 +142,48 @@ public class Console implements Runnable {
             public String help()
             {
                 return "put value in the store";
+            }
+        });
+
+        commands.put("cas", new Command()
+        {
+            @Override
+            public boolean execute(String[] cmdline, ClientService worker)
+            {
+                if (cmdline.length == 4)
+                {
+                    Future<OpResponse> fr = worker.casOp(cmdline[1], cmdline[2], cmdline[3]);
+                    out.println("CAS operation sent! Awaiting response...");
+
+                    try
+                    {
+                        OpResponse r = fr.get();
+                        out.println("CAS operation complete!");
+                        out.println("Response: status= " + r.status + " result= " + r.result);
+                        return true;
+                    }
+                    catch (InterruptedException | ExecutionException ex)
+                    {
+                        ex.printStackTrace(out);
+                        return false;
+                    }
+                }
+                else
+                {
+                    return false;
+                }
+            }
+
+            @Override
+            public String usage()
+            {
+                return "cas <key> <referenceValue> <newValue>";
+            }
+
+            @Override
+            public String help()
+            {
+                return "Compare and swap reference value with new value for specific key";
             }
         });
 
@@ -238,7 +279,7 @@ public class Console implements Runnable {
                 if (line.isEmpty()) {
                     continue;
                 }
-                String[] cmdline = line.split(" ", 3);
+                String[] cmdline = line.split(" ", 4);
                 String cmd = cmdline[0];
                 Command c = commands.get(cmd);
                 if (c == null) {

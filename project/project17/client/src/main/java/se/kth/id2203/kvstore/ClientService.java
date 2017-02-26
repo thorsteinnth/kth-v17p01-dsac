@@ -120,6 +120,8 @@ public class ClientService extends ComponentDefinition {
                 rm = new RouteMsg(((GetOperation)event.op).key, event.op);
             else if (event.op instanceof PutOperation)
                 rm = new RouteMsg(((PutOperation)event.op).key, event.op);
+            else if (event.op instanceof CASOperation)
+                rm = new RouteMsg(((CASOperation)event.op).key, event.op);
             else
                 LOG.error("Received op of unknown type: " + event.op.getClass());
 
@@ -167,6 +169,13 @@ public class ClientService extends ComponentDefinition {
 
     Future<OpResponse> putOp(String key, String value) {
         PutOperation op = new PutOperation(key, value);
+        OpWithFuture owf = new OpWithFuture(op);
+        trigger(owf, onSelf);
+        return owf.f;
+    }
+
+    Future<OpResponse> casOp(String key, String referenceValue, String newValue) {
+        CASOperation op = new CASOperation(key, referenceValue, newValue);
         OpWithFuture owf = new OpWithFuture(op);
         trigger(owf, onSelf);
         return owf.f;
