@@ -53,16 +53,19 @@ import se.sics.kompics.timer.Timer;
 public class ClientService extends ComponentDefinition {
     
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(ClientService.class);
-    //******* Ports ******
+
+    // Ports
     final Positive<Timer> timer = requires(Timer.class);
     final Positive<Network> net = requires(Network.class);
-    //******* Fields ******
+
+    // Fields
     private final NetAddress self = config().getValue("id2203.project.address", NetAddress.class);
     private final NetAddress server = config().getValue("id2203.project.bootstrap-address", NetAddress.class);
     private Optional<Connect.Ack> connected = Optional.absent();
     private final Map<UUID, SettableFuture<OpResponse>> pending = new TreeMap<>();
 
-    //******* Handlers ******
+    //region Handlers
+
     protected final Handler<Start> startHandler = new Handler<Start>() {
         
         @Override
@@ -75,6 +78,7 @@ public class ClientService extends ComponentDefinition {
             trigger(st, timer);
         }
     };
+
     protected final ClassMatchedHandler<Connect.Ack, Message> connectHandler = new ClassMatchedHandler<Connect.Ack, Message>() {
         
         @Override
@@ -86,6 +90,7 @@ public class ClientService extends ComponentDefinition {
             tc.start();
         }
     };
+
     protected final Handler<ConnectTimeout> timeoutHandler = new Handler<ConnectTimeout>() {
         
         @Override
@@ -102,15 +107,33 @@ public class ClientService extends ComponentDefinition {
             }
         }
     };
+
     protected final Handler<OpWithFuture> opHandler = new Handler<OpWithFuture>() {
         
         @Override
-        public void handle(OpWithFuture event) {
-            RouteMsg rm = new RouteMsg(event.op.key, event.op); // don't know which partition is responsible, so ask the bootstrap server to forward it
+        public void handle(OpWithFuture event)
+        {
+            RouteMsg rm = null;
+
+            // don't know which partition is responsible, so ask the bootstrap server to forward it
+            if (event.op instanceof GetOperation)
+                rm = new RouteMsg(((GetOperation)event.op).key, event.op);
+            else if (event.op instanceof PutOperation)
+                rm = new RouteMsg(((PutOperation)event.op).key, event.op);
+            else
+                LOG.error("Received op of unknown type: " + event.op.getClass());
+
+            if (rm == null)
+            {
+                LOG.info("Aborting operation ...");
+                return;
+            }
+
             trigger(new Message(self, server, rm), net);
             pending.put(event.op.id, event.f);
         }
     };
+
     protected final ClassMatchedHandler<OpResponse, Message> responseHandler = new ClassMatchedHandler<OpResponse, Message>() {
         
         @Override
@@ -124,6 +147,8 @@ public class ClientService extends ComponentDefinition {
             }
         }
     };
+
+    //endregion
     
     {
         subscribe(startHandler, control);
@@ -133,8 +158,15 @@ public class ClientService extends ComponentDefinition {
         subscribe(responseHandler, net);
     }
     
-    Future<OpResponse> op(String key) {
-        Operation op = new Operation(key);
+    Future<OpResponse> getOp(String key) {
+        GetOperation op = new GetOperation(key);
+        OpWithFuture owf = new OpWithFuture(op);
+        trigger(owf, onSelf);
+        return owf.f;
+    }
+
+    Future<OpResponse> putOp(String key, String value) {
+        PutOperation op = new PutOperation(key, value);
         OpWithFuture owf = new OpWithFuture(op);
         trigger(owf, onSelf);
         return owf.f;
@@ -151,8 +183,8 @@ public class ClientService extends ComponentDefinition {
         }
     }
     
-    public static class ConnectTimeout extends Timeout {
-        
+    public static class ConnectTimeout extends Timeout
+    {
         ConnectTimeout(ScheduleTimeout st) {
             super(st);
         }

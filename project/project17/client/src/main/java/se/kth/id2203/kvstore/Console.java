@@ -63,25 +63,31 @@ public class Console implements Runnable {
     }
 
     {
-        commands.put("get", new Command() {
-
+        commands.put("get", new Command()
+        {
             @Override
-            public boolean execute(String[] cmdline, ClientService worker) {
-
-                if (cmdline.length == 2) {
-                    Future<OpResponse> fr = worker.op(cmdline[1]);
+            public boolean execute(String[] cmdline, ClientService worker)
+            {
+                if (cmdline.length == 2)
+                {
+                    Future<OpResponse> fr = worker.getOp(cmdline[1]);
                     out.println("GET operation sent! Awaiting response...");
-                    try {
+
+                    try
+                    {
                         OpResponse r = fr.get();
                         out.println("GET operation complete!");
                         out.println("Response: status= " + r.status + " result= " + r.result);
                         return true;
-                    } catch (InterruptedException | ExecutionException ex) {
+                    }
+                    catch (InterruptedException | ExecutionException ex)
+                    {
                         ex.printStackTrace(out);
                         return false;
                     }
-
-                } else {
+                }
+                else
+                {
                     return false;
                 }
             }
@@ -92,10 +98,54 @@ public class Console implements Runnable {
             }
 
             @Override
-            public String help() {
+            public String help()
+            {
                 return "Get value by key";
             }
         });
+
+        commands.put("put", new Command()
+        {
+            @Override
+            public boolean execute(String[] cmdline, ClientService worker)
+            {
+                if (cmdline.length == 3)
+                {
+                    Future<OpResponse> fr = worker.putOp(cmdline[1], cmdline[2]);
+                    out.println("PUT operation sent! Awaiting response...");
+
+                    try
+                    {
+                        OpResponse r = fr.get();
+                        out.println("PUT operation complete!");
+                        out.println("Response: status= " + r.status + " result= " + r.result);
+                        return true;
+                    }
+                    catch (InterruptedException | ExecutionException ex)
+                    {
+                        ex.printStackTrace(out);
+                        return false;
+                    }
+                }
+                else
+                {
+                    return false;
+                }
+            }
+
+            @Override
+            public String usage()
+            {
+                return "put <value>";
+            }
+
+            @Override
+            public String help()
+            {
+                return "put value in the store";
+            }
+        });
+
         commands.put("help", new Command() {
 
             @Override
@@ -126,6 +176,7 @@ public class Console implements Runnable {
                 return "shows this help";
             }
         });
+
         Command exitcom = new Command() {
 
             @Override
@@ -147,6 +198,7 @@ public class Console implements Runnable {
         };
         commands.put("exit", exitcom);
         commands.put("quit", exitcom);
+
         int longestCom = 0;
         Set<Command> comSet = new HashSet<Command>(commands.values());
         for (Command c : comSet) {
@@ -186,7 +238,7 @@ public class Console implements Runnable {
                 if (line.isEmpty()) {
                     continue;
                 }
-                String[] cmdline = line.split(" ", 2);
+                String[] cmdline = line.split(" ", 3);
                 String cmd = cmdline[0];
                 Command c = commands.get(cmd);
                 if (c == null) {

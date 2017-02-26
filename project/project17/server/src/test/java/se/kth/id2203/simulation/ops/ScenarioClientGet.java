@@ -29,7 +29,7 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import se.kth.id2203.kvstore.OpResponse;
-import se.kth.id2203.kvstore.Operation;
+import se.kth.id2203.kvstore.GetOperation;
 import se.kth.id2203.networking.Message;
 import se.kth.id2203.networking.NetAddress;
 import se.kth.id2203.overlay.RouteMsg;
@@ -72,7 +72,7 @@ public class ScenarioClientGet extends ComponentDefinition {
 
             // Let's send (messages-1) ops that should be OK
             for (int i = 0; i < messages-1; i++) {
-                Operation op = new Operation(Integer.toString(i));
+                GetOperation op = new GetOperation(Integer.toString(i));
                 RouteMsg rm = new RouteMsg(op.key, op); // don't know which partition is responsible, so ask the bootstrap server to forward it
                 trigger(new Message(self, server, rm), net);
                 pending.put(op.id, op.key);
@@ -81,7 +81,7 @@ public class ScenarioClientGet extends ComponentDefinition {
             }
 
             // Send one more that should be not found
-            Operation op = new Operation("NONSENSE");
+            GetOperation op = new GetOperation("NONSENSE");
             RouteMsg rm = new RouteMsg(op.key, op); // don't know which partition is responsible, so ask the bootstrap server to forward it
             trigger(new Message(self, server, rm), net);
             pending.put(op.id, op.key);
@@ -89,6 +89,7 @@ public class ScenarioClientGet extends ComponentDefinition {
             res.put(op.key, "SENT");
         }
     };
+
     protected final ClassMatchedHandler<OpResponse, Message> responseHandler = new ClassMatchedHandler<OpResponse, Message>() {
 
         @Override

@@ -5,6 +5,7 @@ public class Tuple {
     private int ts;
     private int wr;
 
+    // TODO Java 8 has support for Optional types: https://docs.oracle.com/javase/8/docs/api/java/util/Optional.html
     private Object optionalValue;
 
     public Tuple(int ts, int wr) {

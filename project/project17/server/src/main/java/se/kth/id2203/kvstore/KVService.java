@@ -52,18 +52,28 @@ public class KVService extends ComponentDefinition {
 
     //region Handlers
 
-    protected final ClassMatchedHandler<Operation, Message> opHandler = new ClassMatchedHandler<Operation, Message>()
+    protected final ClassMatchedHandler<GetOperation, Message> getOpHandler = new ClassMatchedHandler<GetOperation, Message>()
     {
         @Override
-        public void handle(Operation content, Message context) {
+        public void handle(GetOperation operation, Message message) {
 
-            LOG.info("Got operation {}", content);
-            String value = dataStore.get(content.key);
+            LOG.info("Got operation {}", operation);
+            String value = dataStore.get(operation.key);
 
             if (value == null)
-                trigger(new Message(self, context.getSource(), new OpResponse(content.id, Code.NOT_FOUND, value)), net);
+                trigger(new Message(self, message.getSource(), new OpResponse(operation.id, Code.NOT_FOUND, value)), net);
             else
-                trigger(new Message(self, context.getSource(), new OpResponse(content.id, Code.OK, value)), net);
+                trigger(new Message(self, message.getSource(), new OpResponse(operation.id, Code.OK, value)), net);
+        }
+    };
+
+    protected final ClassMatchedHandler<PutOperation, Message> putOpHandler = new ClassMatchedHandler<PutOperation, Message>()
+    {
+        @Override
+        public void handle(PutOperation operation, Message message)
+        {
+            // TODO Handle
+            trigger(new Message(self, message.getSource(), new OpResponse(operation.id, Code.NOT_IMPLEMENTED, null)), net);
         }
     };
 
@@ -91,7 +101,8 @@ public class KVService extends ComponentDefinition {
     }
 
     {
-        subscribe(opHandler, net);
+        subscribe(getOpHandler, net);
+        subscribe(putOpHandler, net);
         subscribe(incomingBroadcastHandler, rb);
         generatePreloadedData();
     }
