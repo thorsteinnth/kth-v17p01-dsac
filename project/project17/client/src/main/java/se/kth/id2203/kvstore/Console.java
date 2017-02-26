@@ -136,7 +136,7 @@ public class Console implements Runnable {
             @Override
             public String usage()
             {
-                return "put <value>";
+                return "put <key> <value>";
             }
 
             @Override
