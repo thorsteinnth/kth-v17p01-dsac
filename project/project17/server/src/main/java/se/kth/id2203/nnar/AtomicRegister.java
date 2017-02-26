@@ -104,6 +104,17 @@ public class AtomicRegister extends ComponentDefinition {
         }
     };
 
+    protected final Handler<ARCASRequest> casRequestHandler = new Handler<ARCASRequest>() {
+        @Override
+        public void handle(ARCASRequest arCASRequest) {
+
+            LOG.info("NNAR: Got a cas request!");
+            // TODO Implement
+
+            trigger(new ARCASResponse(false), nnar);
+        }
+    };
+
     protected final Handler<BEBDeliver> broadcastIncomingHandler = new Handler<BEBDeliver>()
     {
         @Override
@@ -227,5 +238,6 @@ public class AtomicRegister extends ComponentDefinition {
         subscribe(messageHandler, net);
         subscribe(readRequestHandler, nnar);
         subscribe(writeRequestHandler, nnar);
+        subscribe(casRequestHandler, nnar);
     }
 }
