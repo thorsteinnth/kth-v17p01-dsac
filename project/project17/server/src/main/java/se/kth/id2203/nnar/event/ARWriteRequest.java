@@ -2,8 +2,10 @@ package se.kth.id2203.nnar.event;
 
 import se.sics.kompics.KompicsEvent;
 
-public class ARWriteRequest implements KompicsEvent {
+import java.io.Serializable;
 
+public class ARWriteRequest implements KompicsEvent, Serializable
+{
     private Object value;
 
     public ARWriteRequest(Object value) {

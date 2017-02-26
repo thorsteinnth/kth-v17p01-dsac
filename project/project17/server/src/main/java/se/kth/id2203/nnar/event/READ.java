@@ -2,8 +2,10 @@ package se.kth.id2203.nnar.event;
 
 import se.sics.kompics.KompicsEvent;
 
-public class READ implements KompicsEvent {
+import java.io.Serializable;
 
+public class READ implements KompicsEvent, Serializable
+{
     private int rId;
 
     public READ(int rId) {

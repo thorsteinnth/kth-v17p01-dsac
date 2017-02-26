@@ -20,6 +20,8 @@ import java.util.Set;
 
 public class AtomicRegister extends ComponentDefinition {
 
+    // TODO NNAR needs to work on a datastore (hashmap). This is just for storing one value right now.
+
     private final static Logger LOG = LoggerFactory.getLogger(AtomicRegister.class);
 
     // Ports

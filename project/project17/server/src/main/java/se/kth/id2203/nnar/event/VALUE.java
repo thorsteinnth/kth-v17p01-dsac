@@ -2,8 +2,10 @@ package se.kth.id2203.nnar.event;
 
 import se.sics.kompics.KompicsEvent;
 
-public class VALUE implements KompicsEvent {
+import java.io.Serializable;
 
+public class VALUE implements KompicsEvent, Serializable
+{
     private int rId;
     private int ts;
     private int wr;

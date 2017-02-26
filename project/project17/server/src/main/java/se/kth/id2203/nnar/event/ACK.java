@@ -2,8 +2,10 @@ package se.kth.id2203.nnar.event;
 
 import se.sics.kompics.KompicsEvent;
 
-public class ACK implements KompicsEvent {
+import java.io.Serializable;
 
+public class ACK implements KompicsEvent, Serializable
+{
     private int rId;
 
     public ACK(int rId) {
