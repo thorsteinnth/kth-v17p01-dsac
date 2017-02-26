@@ -95,9 +95,9 @@ public class AtomicRegister extends ComponentDefinition {
             LOG.info("NNAR: Got a write request!");
 
             rId = rId + 1;
-            writeVal = arWriteRequest.getValue();
             acks = 0;
             readList.clear();
+            writeVal = arWriteRequest.getValue();
 
             KompicsEvent payload = new READ(rId);
             trigger(new BEBBroadcast(new OriginatedBroadcastMessage(self, payload)), beb);
@@ -122,9 +122,10 @@ public class AtomicRegister extends ComponentDefinition {
                 LOG.info("NNAR: Got broadcast deliver WRITE");
 
                 WRITE write = (WRITE) bebDeliver.payload;
-
                 Tuple writeTuple = new Tuple(write.getTs(), write.getWr());
 
+                // If we receive a write value that has a higher timestamp/rank then we have
+                // then we update our TS, WR and value
                 if(writeTuple.biggerThan(tuple)) {
                     tuple.setTs(write.getTs());
                     tuple.setWr(write.getWr());
@@ -132,10 +133,10 @@ public class AtomicRegister extends ComponentDefinition {
                     if(write.getOptionalWriteValue() != null) {
                         value = write.getOptionalWriteValue();
                     }
-
-                    KompicsEvent payload = new ACK(write.getrId());
-                    trigger(new Message(self, bebDeliver.source, payload), net);
                 }
+
+                KompicsEvent payload = new ACK(write.getrId());
+                trigger(new Message(self, bebDeliver.source, payload), net);
             }
             else {
                 LOG.error("Received unexpected message of type: " + bebDeliver.payload.getClass());
@@ -177,6 +178,13 @@ public class AtomicRegister extends ComponentDefinition {
 
                 if(val.getrId() == rId) {
                     readList.put(e.getSource(), new Tuple(val.getTs(), val.getWr(), val.getOptionalValue()));
+
+                    /*
+                    Check if we have received values from majority of processes,
+                    then select the max TS/Rank and get value.
+                    If read operation, broadcast the value.
+                    If write operation, increase the TS and broadcast the write value
+                     */
 
                     int N = topology.size();
                     if (readList.size() > N/2) {
