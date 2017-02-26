@@ -10,6 +10,9 @@ import se.kth.id2203.simulation.SimulationResultSingleton;
 import se.sics.kompics.simulator.SimulationScenario;
 import se.sics.kompics.simulator.run.LauncherComp;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class EPFDTest {
 
     /*
@@ -25,16 +28,45 @@ public class EPFDTest {
     @Test
     public void epfdCompleteness() {
 
+        /*
+        In this test we start up four clients, then kill two of the clients.
+        We then check for each of the two alive clients if they have the two crashed clients suspected.
+         */
+
         long seed = 123;
         SimulationScenario.setSeed(seed);
         SimulationScenario simpleEPFDScenario = ScenarioGen.epfdCompleteness(4);
-
         simpleEPFDScenario.simulate(LauncherComp.class);
 
-        LOG.debug("EPFDTest - number of suspects = " + res.keySet().size());
-        Assert.assertEquals(3, res.keySet().size());
+        // First check if there are two correct processes that have suspects
+        Assert.assertEquals(2, res.keySet().size());
+
+        for (String process : res.keySet()) {
+
+            // Then we check that each correct process suspects the two crashed processes
+            List<String> suspected = res.get(process, new ArrayList<String>().getClass());
+            LOG.debug("EPFD Test: " + process + " suspects " + suspected.toString());
+            Assert.assertEquals(2, suspected.size());
+        }
 
         // Finish by clearing the result map
         res.clear();
+    }
+
+    @Test
+    public void epfdStrongAccuracy() {
+
+        /*
+        In this test we start up four clients and let them all live.
+        We then check if any of them have any suspected, if not the test has passed.
+         */
+
+        long seed = 123;
+        SimulationScenario.setSeed(seed);
+        SimulationScenario simpleEPFDScenario = ScenarioGen.epfdStrongAccuracy(4);
+        simpleEPFDScenario.simulate(LauncherComp.class);
+
+        // No process should suspect another
+        Assert.assertEquals(0, res.keySet().size());
     }
 }

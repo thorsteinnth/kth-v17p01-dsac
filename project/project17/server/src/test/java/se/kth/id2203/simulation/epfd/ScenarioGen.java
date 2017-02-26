@@ -174,13 +174,35 @@ public abstract class ScenarioGen {
                 StochasticProcess killClients = new StochasticProcess() {
                     {
                         eventInterArrivalTime(constant(0));
-                        raise(3, killClientOp, new BasicIntSequentialDistribution((1)));
+                        raise(2, killClientOp, new BasicIntSequentialDistribution((1)));
                     }
                 };
 
                 startClients.start();
                 //observer.startAfterTerminationOf(0, startClients);
                 killClients.startAfterTerminationOf(2000, startClients);
+                terminateAfterTerminationOf(100000, startClients);
+            }
+        };
+    }
+
+    public static SimulationScenario epfdStrongAccuracy(final int clients) {
+        return new SimulationScenario() {
+            {
+                StochasticProcess startClients = new StochasticProcess() {
+                    {
+                        eventInterArrivalTime(constant(1000));
+                        raise(clients, startClient, new BasicIntSequentialDistribution(1));
+                    }
+                };
+
+                SimulationScenario.StochasticProcess observer = new SimulationScenario.StochasticProcess() {
+                    {
+                        raise(1, startObserverOp);
+                    }
+                };
+
+                startClients.start();
                 terminateAfterTerminationOf(100000, startClients);
             }
         };

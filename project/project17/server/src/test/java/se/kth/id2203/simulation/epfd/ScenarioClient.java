@@ -19,9 +19,7 @@ import se.sics.kompics.simulator.network.identifier.Identifier;
 import se.sics.kompics.simulator.util.GlobalView;
 import se.sics.kompics.timer.Timer;
 
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public class ScenarioClient extends ComponentDefinition {
 
@@ -37,6 +35,7 @@ public class ScenarioClient extends ComponentDefinition {
     private final NetAddress server = config().getValue("id2203.project.bootstrap-address", NetAddress.class);
 
     private final SimulationResultMap res = SimulationResultSingleton.getInstance();
+    private List<String> suspected;
 
     protected final Handler<Start> startHandler = new Handler<Start>() {
 
@@ -45,6 +44,7 @@ public class ScenarioClient extends ComponentDefinition {
 
             GlobalView globalView = config().getValue("simulation.globalview", GlobalView.class);
             Set<NetAddress> nodes = new HashSet<>();
+            suspected = new ArrayList<>();
 
             for (Map.Entry<Identifier, Address> entry : globalView.getAliveNodes().entrySet())
             {
@@ -64,7 +64,9 @@ public class ScenarioClient extends ComponentDefinition {
         @Override
         public void handle(Suspect suspect) {
             LOG.debug("EPFD Test: got a suspected process: " + suspect.getAddress());
-            res.put(suspect.getAddress().toString(), "suspect");
+
+            suspected.add(suspect.getAddress().toString());
+            res.put(self.toString(), suspected);
         }
     };
 
@@ -74,7 +76,9 @@ public class ScenarioClient extends ComponentDefinition {
         public void handle(Restore restore) {
             if (res.keySet().contains(restore.getAddress().toString())) {
                 LOG.debug("EPFD Test: removing a suspect: " + restore.getAddress());
-                res.remove(restore.getAddress().toString());
+
+                suspected.remove(restore.getAddress().toString());
+                res.put(self.toString(), suspected);
             }
         }
     };
