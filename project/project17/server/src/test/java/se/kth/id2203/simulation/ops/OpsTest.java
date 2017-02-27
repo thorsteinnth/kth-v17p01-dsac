@@ -42,35 +42,51 @@ public class OpsTest {
     @Test
     public void simpleOpsTest()
     {
-        // TODO FIX LATER
-        return;
+        // Test for put and get operations, first put then get.
+        // (we do not have any pre loaded data at the moment)
 
-        /*
+        res.clear();
+
         long seed = 123;
         SimulationScenario.setSeed(seed);
         SimulationScenario simpleBootScenario = ScenarioGen.simpleOps(3);
         res.put("messages", NUM_MESSAGES);
         simpleBootScenario.simulate(LauncherComp.class);
 
-        // We have (NUM_MESSAGES-1) operations that should be ok
+        System.out.println("simpleOpsTest - RESULTMAP AFTER RUN: " + res.toString());
+
+        for (int i = 0; i < NUM_MESSAGES; i++)
+        {
+            Assert.assertEquals("OK", res.get("PUT-" + Integer.toString(i), String.class));
+        }
+
+        // We have (NUM_MESSAGES-1) GET operations that should be ok
         for (int i = 0; i < NUM_MESSAGES-1; i++)
         {
-            Assert.assertEquals("OK", res.get(Integer.toString(i), String.class));
+            Assert.assertEquals("OK", res.get("GET-" + Integer.toString(i), String.class));
         }
 
         // And one more that should be not found
-        Assert.assertEquals("NOT_FOUND", res.get("NONSENSE", String.class));
-        */
+        Assert.assertEquals("NOT_FOUND", res.get("GET-" + "NONSENSE", String.class));
     }
 
     @Test
-    public void simplePutTest() {
+    public void simplePutTest()
+    {
+        res.clear();
 
         long seed = 123;
         SimulationScenario.setSeed(seed);
         SimulationScenario simplePutScenario = ScenarioGen.simplePut(4);
 
-        // TODO : Finish up simple put test
-    }
+        res.put("messages", NUM_MESSAGES);
+        simplePutScenario.simulate(LauncherComp.class);
 
+        System.out.println("simplePutTest - RESULTMAP AFTER RUN: " + res.toString());
+
+        for (int i = 0; i < NUM_MESSAGES; i++)
+        {
+            Assert.assertEquals("OK", res.get("PUT-" + Integer.toString(i), String.class));
+        }
+    }
 }

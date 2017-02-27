@@ -13,4 +13,12 @@ public class ARWriteRequest implements KompicsEvent, Serializable
     {
         this.operation = operation;
     }
+
+    @Override
+    public String toString()
+    {
+        return "ARWriteRequest{" +
+                "operation=" + operation +
+                '}';
+    }
 }

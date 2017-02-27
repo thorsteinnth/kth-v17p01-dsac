@@ -29,8 +29,6 @@ import java.util.HashMap;
 import java.util.Map;
 import se.kth.id2203.ParentComponent;
 import se.kth.id2203.networking.NetAddress;
-import se.kth.id2203.simulation.epfd.ScenarioClient;
-import se.kth.id2203.simulation.ops.ScenarioClientGet;
 import se.sics.kompics.Init;
 import se.sics.kompics.network.Address;
 import se.sics.kompics.simulator.SimulationScenario;
@@ -190,6 +188,9 @@ public abstract class ScenarioGen {
         }
     };
 
+    /**
+     * Test for put and get operations, first put then get.
+     * */
     public static SimulationScenario simpleOps(final int servers) {
 
 
@@ -202,19 +203,31 @@ public abstract class ScenarioGen {
                     }
                 };
 
-                SimulationScenario.StochasticProcess startClients = new SimulationScenario.StochasticProcess() {
+                SimulationScenario.StochasticProcess startClientsPut = new SimulationScenario.StochasticProcess() {
+                    {
+                        eventInterArrivalTime(constant(1000));
+                        raise(1, startClientPutOp, new BasicIntSequentialDistribution(1));
+                    }
+                };
+
+                SimulationScenario.StochasticProcess startClientsGet = new SimulationScenario.StochasticProcess() {
                     {
                         eventInterArrivalTime(constant(1000));
                         raise(1, startClientGetOp, new BasicIntSequentialDistribution(1));
                     }
                 };
+
                 startCluster.start();
-                startClients.startAfterTerminationOf(10000, startCluster);
-                terminateAfterTerminationOf(100000, startClients);
+                startClientsPut.startAfterTerminationOf(10000, startCluster);
+                startClientsGet.startAfterTerminationOf(10, startClientsPut);
+                terminateAfterTerminationOf(100000, startClientsGet);
             }
         };
     }
 
+    /**
+     * Test for put operations.
+     * */
     public static SimulationScenario simplePut(final int servers) {
         return new SimulationScenario() {
             {
@@ -231,6 +244,7 @@ public abstract class ScenarioGen {
                         raise(1, startClientPutOp, new BasicIntSequentialDistribution(1));
                     }
                 };
+
                 startCluster.start();
                 startClients.startAfterTerminationOf(10000, startCluster);
                 terminateAfterTerminationOf(100000, startClients);

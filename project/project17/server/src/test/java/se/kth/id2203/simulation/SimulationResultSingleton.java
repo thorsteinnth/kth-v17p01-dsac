@@ -94,4 +94,12 @@ public class SimulationResultSingleton implements SimulationResultMap {
     public void clear() {
         this.entries.clear();
     }
+
+    @Override
+    public String toString()
+    {
+        return "SimulationResultSingleton{" +
+                "entries=" + entries +
+                '}';
+    }
 }

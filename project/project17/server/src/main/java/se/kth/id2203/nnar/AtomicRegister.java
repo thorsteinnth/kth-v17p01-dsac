@@ -64,7 +64,7 @@ public class AtomicRegister extends ComponentDefinition
         @Override
         public void handle(ARReadRequest arReadRequest)
         {
-            LOG.info("NNAR: Got a read request: " + arReadRequest);
+            LOG.info(self + " - NNAR: Got a read request: " + arReadRequest);
 
             NNARState state = new NNARState();
             state.setReading(true);
@@ -81,7 +81,7 @@ public class AtomicRegister extends ComponentDefinition
         @Override
         public void handle(ARWriteRequest arWriteRequest)
         {
-            LOG.info("NNAR: Got a write request!");
+            LOG.info(self + " - NNAR: Got a write request: " + arWriteRequest);
 
             NNARState state = new NNARState();
             state.setWriteVal(arWriteRequest.operation.value);
@@ -278,7 +278,7 @@ public class AtomicRegister extends ComponentDefinition
     private void printDataStore()
     {
         StringBuilder sb = new StringBuilder();
-        sb.append("Datastore - \n");
+        sb.append("Datastore - size: " + datastore.size() + " \n");
 
         for (String key : datastore.keySet())
         {

@@ -26,6 +26,7 @@ package se.kth.id2203.simulation.ops;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.UUID;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import se.kth.id2203.kvstore.OpResponse;
@@ -44,10 +45,10 @@ import se.sics.kompics.network.Network;
 import se.sics.kompics.timer.Timer;
 
 /**
- *
  * @author Lars Kroll <lkroll@kth.se>
  */
-public class ScenarioClientGet extends ComponentDefinition {
+public class ScenarioClientGet extends ComponentDefinition
+{
 
     final static Logger LOG = LoggerFactory.getLogger(ScenarioClientGet.class);
 
@@ -63,42 +64,47 @@ public class ScenarioClientGet extends ComponentDefinition {
 
     //region Handlers
 
-    protected final Handler<Start> startHandler = new Handler<Start>() {
-
+    protected final Handler<Start> startHandler = new Handler<Start>()
+    {
         @Override
         public void handle(Start event)
         {
             int messages = res.get("messages", Integer.class);
 
             // Let's send (messages-1) ops that should be OK
-            for (int i = 0; i < messages-1; i++) {
+            for (int i = 0; i < messages - 1; i++)
+            {
                 GetOperation op = new GetOperation(Integer.toString(i));
                 RouteMsg rm = new RouteMsg(op.key, op); // don't know which partition is responsible, so ask the bootstrap server to forward it
                 trigger(new Message(self, server, rm), net);
-                pending.put(op.id, op.key);
+                pending.put(op.id, "GET-" + op.key);
                 LOG.info("Sending {}", op);
-                res.put(op.key, "SENT");
+                res.put("GET-" + op.key, "SENT");
             }
 
             // Send one more that should be not found
             GetOperation op = new GetOperation("NONSENSE");
             RouteMsg rm = new RouteMsg(op.key, op); // don't know which partition is responsible, so ask the bootstrap server to forward it
             trigger(new Message(self, server, rm), net);
-            pending.put(op.id, op.key);
+            pending.put(op.id, "GET-" + op.key);
             LOG.info("Sending {}", op);
-            res.put(op.key, "SENT");
+            res.put("GET-" + op.key, "SENT");
         }
     };
 
-    protected final ClassMatchedHandler<OpResponse, Message> responseHandler = new ClassMatchedHandler<OpResponse, Message>() {
-
+    protected final ClassMatchedHandler<OpResponse, Message> responseHandler = new ClassMatchedHandler<OpResponse, Message>()
+    {
         @Override
-        public void handle(OpResponse content, Message context) {
+        public void handle(OpResponse content, Message context)
+        {
             LOG.debug("Got OpResponse: {}", content);
             String key = pending.remove(content.id);
-            if (key != null) {
+            if (key != null)
+            {
                 res.put(key, content.status.toString());
-            } else {
+            }
+            else
+            {
                 LOG.warn("ID {} was not pending! Ignoring response.", content.id);
             }
         }

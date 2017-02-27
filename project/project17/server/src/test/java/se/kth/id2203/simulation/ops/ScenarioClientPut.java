@@ -2,8 +2,8 @@ package se.kth.id2203.simulation.ops;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import se.kth.id2203.kvstore.GetOperation;
 import se.kth.id2203.kvstore.OpResponse;
+import se.kth.id2203.kvstore.PutOperation;
 import se.kth.id2203.networking.Message;
 import se.kth.id2203.networking.NetAddress;
 import se.kth.id2203.overlay.RouteMsg;
@@ -38,22 +38,16 @@ public class ScenarioClientPut extends ComponentDefinition {
         @Override
         public void handle(Start event) {
 
-
-            // TODO
-            // Start by sending 10 put requests,
-            // Then get the 10 requests with same keys and compare the values
-
-
             int messages = res.get("messages", Integer.class);
 
-            // Let's send (messages-1) ops that should be OK
-            for (int i = 0; i < messages - 1; i++) {
-                GetOperation op = new GetOperation(Integer.toString(i));
+            for (int i = 0; i < messages; i++)
+            {
+                PutOperation op = new PutOperation(Integer.toString(i), "This is datavalue " + Integer.toString(i));
                 RouteMsg rm = new RouteMsg(op.key, op); // don't know which partition is responsible, so ask the bootstrap server to forward it
                 trigger(new Message(self, server, rm), net);
-                pending.put(op.id, op.key);
+                pending.put(op.id, "PUT-" + op.key);
                 LOG.info("Sending {}", op);
-                res.put(op.key, "SENT");
+                res.put("PUT-" + op.key, "SENT");
             }
         }
     };
