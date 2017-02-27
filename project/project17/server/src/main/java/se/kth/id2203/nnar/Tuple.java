@@ -52,30 +52,24 @@ public class Tuple
 
     /**
      * Checks if tuple is bigger then input tuple
-     *
      * @param tuple
-     * @return
+     * @return True if timestamp is bigger. If timestamp are equal, return true if rank is bigger. Otherwise false.
      */
     public boolean biggerThan(Tuple tuple)
     {
-
         if (ts > tuple.getTs())
-        {
+            return true;
 
-            if (wr > tuple.getWr())
-            {
-                return true;
-            }
-        }
+        if (ts == tuple.getTs() && wr > tuple.getWr())
+            return true;
 
         return false;
     }
 
     /**
-     * checks if tuple is bigger then or equal to the input tuple
-     *
+     * Checks if tuple is bigger then or equal to the input tuple
      * @param tuple
-     * @return
+     * @return True if timestamp is bigger. If timestamps are equal, return true if rank is bigger or equal. Otherwise false.
      */
     public boolean biggerOrEqual(Tuple tuple)
     {

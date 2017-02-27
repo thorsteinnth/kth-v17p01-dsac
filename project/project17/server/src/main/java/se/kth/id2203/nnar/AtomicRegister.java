@@ -147,8 +147,11 @@ public class AtomicRegister extends ComponentDefinition
                     foundTuple = new Tuple(0, 0);
                 }
 
-                // If we receive a write value that has a higher timestamp/rank then we have
+                // If we receive a write value that has a higher timestamp
                 // then we update our TS, WR and value
+                // Wr (rank) used as tiebreakers
+                // We are using biggerThan here not biggerOrEqual since
+                // we do not want to overwrite with the same value
                 if (writeTuple.biggerThan(foundTuple))
                 {
                     foundTuple.setTs(write.getTs());
