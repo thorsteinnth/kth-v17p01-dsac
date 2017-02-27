@@ -1,58 +1,69 @@
 package se.kth.id2203.nnar;
 
-public class Tuple {
-
+public class Tuple
+{
     private int ts;
     private int wr;
-
-    // TODO Java 8 has support for Optional types: https://docs.oracle.com/javase/8/docs/api/java/util/Optional.html
     private Object optionalValue;
 
-    public Tuple(int ts, int wr) {
+    public Tuple(int ts, int wr)
+    {
         this.ts = ts;
         this.wr = wr;
+        this.optionalValue = null;
     }
 
-    public Tuple(int ts, int wr, Object optionalValue) {
+    public Tuple(int ts, int wr, Object optionalValue)
+    {
         this.ts = ts;
         this.wr = wr;
         this.optionalValue = optionalValue;
     }
 
-    public int getTs() {
+    public int getTs()
+    {
         return ts;
     }
 
-    public void setTs(int ts) {
+    public void setTs(int ts)
+    {
         this.ts = ts;
     }
 
-    public int getWr() {
+    public int getWr()
+    {
         return wr;
     }
 
-    public void setWr(int wr) {
+    public void setWr(int wr)
+    {
         this.wr = wr;
     }
 
-    public Object getOptionalValue() {
+    public Object getOptionalValue()
+    {
         return optionalValue;
     }
 
-    public void setOptionalValue(Object optionalValue) {
+    public void setOptionalValue(Object optionalValue)
+    {
         this.optionalValue = optionalValue;
     }
 
     /**
      * Checks if tuple is bigger then input tuple
+     *
      * @param tuple
      * @return
      */
-    public boolean biggerThan(Tuple tuple) {
+    public boolean biggerThan(Tuple tuple)
+    {
 
-        if (ts > tuple.getTs()) {
+        if (ts > tuple.getTs())
+        {
 
-            if (wr > tuple.getWr()) {
+            if (wr > tuple.getWr())
+            {
                 return true;
             }
         }
@@ -62,6 +73,7 @@ public class Tuple {
 
     /**
      * checks if tuple is bigger then or equal to the input tuple
+     *
      * @param tuple
      * @return
      */
@@ -81,7 +93,8 @@ public class Tuple {
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(Object o)
+    {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
@@ -93,10 +106,21 @@ public class Tuple {
     }
 
     @Override
-    public int hashCode() {
+    public int hashCode()
+    {
         int result = ts;
         result = 31 * result + wr;
         result = 31 * result + (optionalValue != null ? optionalValue.hashCode() : 0);
         return result;
+    }
+
+    @Override
+    public String toString()
+    {
+        return "Tuple{" +
+                "ts=" + ts +
+                ", wr=" + wr +
+                ", optionalValue=" + optionalValue +
+                '}';
     }
 }

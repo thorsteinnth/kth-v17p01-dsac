@@ -13,14 +13,11 @@ import se.kth.id2203.overlay.Topology;
 import se.sics.kompics.*;
 import se.sics.kompics.network.Network;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
-public class AtomicRegister extends ComponentDefinition {
-
-    // TODO NNAR needs to work on a datastore (hashmap). This is just for storing one value right now.
+public class AtomicRegister extends ComponentDefinition
+{
+    // TODO Stop using OriginatedBroadcastMessage
 
     private final static Logger LOG = LoggerFactory.getLogger(AtomicRegister.class);
 
@@ -32,36 +29,26 @@ public class AtomicRegister extends ComponentDefinition {
     // Fields
     private final NetAddress self = config().getValue("id2203.project.address", NetAddress.class);
     private Set<NetAddress> topology = new HashSet<>();
+    private HashMap<UUID, NNARState> pendingOperations;
+    private HashMap<String, Tuple> datastore;
 
-    private Tuple tuple; //ts and wr
-    private Object value;
-    private int acks;
-    private Object readVal;
-    private Object writeVal;
-    private int rId;
-    private Map<NetAddress, Tuple> readList;
-    private boolean reading;
+    //region Handlers
 
-    // Handlers
-    protected final Handler<Start> startHandler = new Handler<Start>() {
-
+    protected final Handler<Start> startHandler = new Handler<Start>()
+    {
         @Override
-        public void handle(Start event) {
-
+        public void handle(Start event)
+        {
             LOG.info("Starting Atomic Register on {}", self);
 
-            tuple = new Tuple(0, 0);
-            value = null;
-            acks = 0;
-            readVal = null;
-            writeVal = null;
-            rId = 0;
-            readList = new HashMap<>();
-            reading = false;
+            pendingOperations = new HashMap<>();
+            datastore = new HashMap<>();
         }
     };
 
-    // Here we are supposed to receive all the nodes that belong to the replication group
+    /**
+     * Receive the topology of my replication group
+     * */
     private final Handler<Topology> topologyHandler = new Handler<Topology>()
     {
         @Override
@@ -72,34 +59,36 @@ public class AtomicRegister extends ComponentDefinition {
         }
     };
 
-    protected final Handler<ARReadRequest> readRequestHandler = new Handler<ARReadRequest>() {
+    protected final Handler<ARReadRequest> readRequestHandler = new Handler<ARReadRequest>()
+    {
         @Override
-        public void handle(ARReadRequest arReadRequest) {
+        public void handle(ARReadRequest arReadRequest)
+        {
+            LOG.info("NNAR: Got a read request: " + arReadRequest);
 
-            LOG.info("NNAR: Got a read request!");
+            NNARState state = new NNARState();
+            state.setReading(true);
 
-            rId = rId + 1;
-            acks = 0;
-            readList.clear();
-            reading = true;
+            pendingOperations.put(arReadRequest.operation.id, state);
 
-            KompicsEvent payload = new READ(rId);
+            KompicsEvent payload = new READ(arReadRequest.operation.key, arReadRequest.operation.id);
             trigger(new BEBBroadcast(new OriginatedBroadcastMessage(self, payload)), beb);
         }
     };
 
-    protected final Handler<ARWriteRequest> writeRequestHandler = new Handler<ARWriteRequest>() {
+    protected final Handler<ARWriteRequest> writeRequestHandler = new Handler<ARWriteRequest>()
+    {
         @Override
-        public void handle(ARWriteRequest arWriteRequest) {
-
+        public void handle(ARWriteRequest arWriteRequest)
+        {
             LOG.info("NNAR: Got a write request!");
 
-            rId = rId + 1;
-            acks = 0;
-            readList.clear();
-            writeVal = arWriteRequest.getValue();
+            NNARState state = new NNARState();
+            state.setWriteVal(arWriteRequest.operation.value);
 
-            KompicsEvent payload = new READ(rId);
+            pendingOperations.put(arWriteRequest.operation.id, state);
+
+            KompicsEvent payload = new READ(arWriteRequest.operation.key, arWriteRequest.operation.id);
             trigger(new BEBBroadcast(new OriginatedBroadcastMessage(self, payload)), beb);
         }
     };
@@ -109,116 +98,182 @@ public class AtomicRegister extends ComponentDefinition {
         @Override
         public void handle(BEBDeliver bebDeliver)
         {
+            if (!(bebDeliver.payload instanceof OriginatedBroadcastMessage))
+            {
+                LOG.error("Received unexpected BEB deliver payload of type: " + bebDeliver.payload.getClass());
+                return;
+            }
 
-            if (bebDeliver.payload instanceof READ) {
-                LOG.info("NNAR: Got broadcast deliver READ");
+            OriginatedBroadcastMessage bebPayload = (OriginatedBroadcastMessage) bebDeliver.payload;
 
-                READ read = (READ) bebDeliver.payload;
+            if (bebPayload.payload instanceof READ)
+            {
+                READ read = (READ) bebPayload.payload;
+                LOG.info("NNAR: Got broadcast deliver: " + read.toString());
 
-                KompicsEvent payload = new VALUE(read.getrId(), tuple.getTs(), tuple.getWr(), value);
+                // Find value in the datastore
+                Tuple foundTuple = datastore.get(read.getKey());
+                if (foundTuple == null)
+                {
+                    foundTuple = new Tuple(0, 0);
+                }
+
+                KompicsEvent payload = new VALUE(read.getKey(), read.getOpId(), foundTuple.getTs(), foundTuple.getWr(), foundTuple.getOptionalValue());
                 trigger(new Message(self, bebDeliver.source, payload), net);
             }
-            else if (bebDeliver.payload instanceof WRITE) {
-                LOG.info("NNAR: Got broadcast deliver WRITE");
+            else if (bebPayload.payload instanceof WRITE)
+            {
+                // Write value to datastore
 
-                WRITE write = (WRITE) bebDeliver.payload;
+                WRITE write = (WRITE) bebPayload.payload;
+                LOG.info("NNAR: Got broadcast deliver: " + write.toString());
                 Tuple writeTuple = new Tuple(write.getTs(), write.getWr());
+
+                // Find value in the datastore
+                Tuple foundTuple = datastore.get(write.getKey());
+                if (foundTuple == null)
+                {
+                    foundTuple = new Tuple(0, 0);
+                }
 
                 // If we receive a write value that has a higher timestamp/rank then we have
                 // then we update our TS, WR and value
-                if(writeTuple.biggerThan(tuple)) {
-                    tuple.setTs(write.getTs());
-                    tuple.setWr(write.getWr());
-
-                    if(write.getOptionalWriteValue() != null) {
-                        value = write.getOptionalWriteValue();
-                    }
+                if (writeTuple.biggerThan(foundTuple))
+                {
+                    foundTuple.setTs(write.getTs());
+                    foundTuple.setWr(write.getWr());
+                    foundTuple.setOptionalValue(write.getOptionalWriteValue());
                 }
 
-                KompicsEvent payload = new ACK(write.getrId());
+                // Update/add entry in datastore
+                datastore.put(write.getKey(), foundTuple);
+
+                // TODO Remove
+                printDataStore();
+
+                KompicsEvent payload = new ACK(write.getOpId());
                 trigger(new Message(self, bebDeliver.source, payload), net);
             }
-            else {
-                LOG.error("Received unexpected message of type: " + bebDeliver.payload.getClass());
+            else
+            {
+                LOG.error("Received unexpected BEB payload of type: " + bebPayload.payload.getClass());
             }
         }
     };
 
-    protected final Handler<Message> messageHandler = new Handler<Message>() {
-
+    protected final Handler<Message> messageHandler = new Handler<Message>()
+    {
         @Override
-        public void handle(Message e) {
-
-            if (e.payload instanceof ACK) {
-                LOG.info("NNAR: pp2p message handler ACK");
-
+        public void handle(Message e)
+        {
+            if (e.payload instanceof ACK)
+            {
                 ACK ack = (ACK) e.payload;
+                LOG.info("NNAR: pp2p message handler: " + ack.toString());
 
-                if (ack.getrId() == rId) {
-                    acks = acks + 1;
+                // Find the pending operation that this message is about
+                NNARState state = pendingOperations.get(ack.getOpId());
+                if (state != null)
+                {
+                    // We are handling this operation
+
+                    state.setAcks(state.getAcks() + 1);
 
                     int N = topology.size();
-                    if (acks > N/2) {
-                        acks = 0;
+                    if (state.getAcks() > N / 2)
+                    {
+                        state.setAcks(0);   // TODO Should probably just remove from pending operations instead of resetting state
 
-                        if (reading) {
-                            reading = false;
-                            trigger(new ARReadResponse(readVal), nnar);
+                        if (state.isReading())
+                        {
+                            state.setReading(false);    // TODO Should probably just remove from pending operations instead of resetting state
+                            trigger(new ARReadResponse(ack.getOpId(), state.getReadVal()), nnar);
                         }
-                        else {
-                            trigger(new ARWriteResponse(), nnar);
+                        else
+                        {
+                            trigger(new ARWriteResponse(ack.getOpId()), nnar);
                         }
+
+                        // This operation has been handled, remove it from pending operations
+                        pendingOperations.remove(ack.getOpId());
                     }
                 }
             }
-            else if (e.payload instanceof VALUE) {
-                LOG.info("NNAR: pp2p message handler VALUE");
-
+            else if (e.payload instanceof VALUE)
+            {
                 VALUE val = (VALUE) e.payload;
+                LOG.info("NNAR: pp2p message handler: " + val);
 
-                if(val.getrId() == rId) {
-                    readList.put(e.getSource(), new Tuple(val.getTs(), val.getWr(), val.getOptionalValue()));
+                // Find the pending operation that this message is about
+                NNARState state = pendingOperations.get(val.getOpId());
+                if (state != null)
+                {
+                    // We are handling this operation
 
-                    /*
-                    Check if we have received values from majority of processes,
-                    then select the max TS/Rank and get value.
-                    If read operation, broadcast the value.
-                    If write operation, increase the TS and broadcast the write value
-                     */
+                    state.getReadList().put(e.getSource(), new Tuple(val.getTs(), val.getWr(), val.getOptionalValue()));
 
+                    // Check if we have received values from majority of processes,
                     int N = topology.size();
-                    if (readList.size() > N/2) {
+                    if (state.getReadList().size() > N / 2)
+                    {
+                        // We have received values from the majority of processes
+
+                        // Get the highest tuple (value) we have gotten (max timestamp, rank as tiebreaker)
                         Tuple highest = new Tuple(0, 0);
-
-                        for (Tuple tuple : readList.values()) {
-
-                            if (tuple.biggerOrEqual(highest)) {
+                        for (Tuple tuple : state.getReadList().values())
+                        {
+                            if (tuple.biggerOrEqual(highest))
+                            {
                                 highest = tuple;
                             }
                         }
 
-                        if (highest.getOptionalValue() != null) {
-                            readVal = highest.getOptionalValue();
-                        }
+                        state.setReadVal(highest.getOptionalValue());
 
                         Object broadcastVal = null;
 
-                        if (reading) {
-                            broadcastVal = readVal;
+                        if (state.isReading())
+                        {
+                            // This is a read operation, broadcast the read value
+                            broadcastVal = state.getReadVal();
                         }
-                        else {
-                            highest.setWr(self.hashCode());     // SelfRank
+                        else
+                        {
+                            // This is a write operation
+                            // Set new timestamp (1 higher then the highest so far) and rank for the write message
+                            highest.setWr(getSelfRank());
                             highest.setTs(highest.getTs() + 1); // MaxTS
-                            broadcastVal = writeVal;
+                            broadcastVal = state.getWriteVal();
                         }
 
-                        KompicsEvent payload = new WRITE(rId, highest.getTs(), highest.getWr(), broadcastVal);
+                        KompicsEvent payload = new WRITE(val.getKey(), val.getOpId(), highest.getTs(), highest.getWr(), broadcastVal);
                         trigger(new BEBBroadcast(new OriginatedBroadcastMessage(self, payload)), beb);
                     }
                 }
             }
         }
     };
+
+    //endregion
+
+    private int getSelfRank()
+    {
+        return self.hashCode();
+    }
+
+    private void printDataStore()
+    {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Datastore - \n");
+
+        for (String key : datastore.keySet())
+        {
+            Tuple tuple = datastore.get(key);
+            sb.append("[" + key + " - " + tuple.toString() + "]");
+        }
+
+        LOG.debug(self.toString() + " - " + sb.toString());
+    }
 
     {
         subscribe(startHandler, control);

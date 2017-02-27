@@ -3,16 +3,27 @@ package se.kth.id2203.nnar.event;
 import se.sics.kompics.KompicsEvent;
 
 import java.io.Serializable;
+import java.util.UUID;
 
 public class ACK implements KompicsEvent, Serializable
 {
-    private int rId;
+    private UUID opId;
 
-    public ACK(int rId) {
-        this.rId = rId;
+    public ACK(UUID opId)
+    {
+        this.opId = opId;
     }
 
-    public int getrId() {
-        return this.rId;
+    public UUID getOpId()
+    {
+        return opId;
+    }
+
+    @Override
+    public String toString()
+    {
+        return "ACK{" +
+                "opId=" + opId +
+                '}';
     }
 }

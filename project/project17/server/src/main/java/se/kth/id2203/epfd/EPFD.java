@@ -69,7 +69,7 @@ public class EPFD extends ComponentDefinition{
         @Override
         public void handle(CheckTimeout e) {
 
-            LOG.info("EPFD received timeout");
+            //LOG.info("EPFD received timeout");
             Set<NetAddress> suspectedAndAlive = new HashSet<>(alive);
             suspectedAndAlive.retainAll(suspected);
 
@@ -130,7 +130,7 @@ public class EPFD extends ComponentDefinition{
 
     private void startTimer(Long delay) {
 
-        LOG.info("EPFD start timer with delay " + delay.toString());
+        //LOG.info("EPFD start timer with delay " + delay.toString());
         ScheduleTimeout scheduleTimeout = new ScheduleTimeout(delay);
         scheduleTimeout.setTimeoutEvent(new CheckTimeout(scheduleTimeout));
         trigger(scheduleTimeout, timer);

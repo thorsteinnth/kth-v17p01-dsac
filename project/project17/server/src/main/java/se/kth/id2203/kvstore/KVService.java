@@ -25,16 +25,22 @@ package se.kth.id2203.kvstore;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import se.kth.id2203.broadcast.rb.RBDeliver;
-import se.kth.id2203.broadcast.rb.ReliableBroadcastPort;
+import se.kth.id2203.broadcast.beb.BEBDeliver;
+import se.kth.id2203.broadcast.beb.BestEffortBroadcastPort;
 import se.kth.id2203.kvstore.OpResponse.Code;
 import se.kth.id2203.networking.Message;
 import se.kth.id2203.networking.NetAddress;
+import se.kth.id2203.nnar.AtomicRegisterPort;
+import se.kth.id2203.nnar.event.ARReadRequest;
+import se.kth.id2203.nnar.event.ARReadResponse;
+import se.kth.id2203.nnar.event.ARWriteRequest;
+import se.kth.id2203.nnar.event.ARWriteResponse;
 import se.kth.id2203.overlay.Routing;
 import se.sics.kompics.*;
 import se.sics.kompics.network.Network;
 
 import java.util.HashMap;
+import java.util.UUID;
 
 public class KVService extends ComponentDefinition {
 
@@ -43,28 +49,28 @@ public class KVService extends ComponentDefinition {
     // Ports
     protected final Positive<Network> net = requires(Network.class);
     protected final Positive<Routing> route = requires(Routing.class);
-    // TODO Do we want to receive broadcast messages here in this component?
-    protected final Positive<ReliableBroadcastPort> rb = requires(ReliableBroadcastPort.class);
+    protected final Positive<BestEffortBroadcastPort> beb = requires(BestEffortBroadcastPort.class);
+    protected final Positive<AtomicRegisterPort> nnar = requires(AtomicRegisterPort.class);
 
     // Fields
     final NetAddress self = config().getValue("id2203.project.address", NetAddress.class);
-    private HashMap<String, String> dataStore;
+    /**
+     * Pending operations that are being processed by atomic register.
+     * */
+    private HashMap<UUID, NetAddress> pendingOperations;
 
     //region Handlers
 
     protected final ClassMatchedHandler<GetOperation, Message> getOpHandler = new ClassMatchedHandler<GetOperation, Message>()
     {
         @Override
-        public void handle(GetOperation operation, Message message) {
-
-            // TODO NNAR
+        public void handle(GetOperation operation, Message message)
+        {
             LOG.info("Got operation {}", operation);
-            String value = dataStore.get(operation.key);
 
-            if (value == null)
-                trigger(new Message(self, message.getSource(), new OpResponse(operation.id, Code.NOT_FOUND, value)), net);
-            else
-                trigger(new Message(self, message.getSource(), new OpResponse(operation.id, Code.OK, value)), net);
+            // Send a read request to NNAR
+            pendingOperations.put(operation.id, message.getSource());
+            trigger(new ARReadRequest(operation), nnar);
         }
     };
 
@@ -73,10 +79,11 @@ public class KVService extends ComponentDefinition {
         @Override
         public void handle(PutOperation operation, Message message)
         {
-            // TODO NNAR - right now this is only putting the new value in one node in the replication group
             LOG.info("Got operation {}", operation);
-            String previousValue = dataStore.put(operation.key, operation.value);
-            trigger(new Message(self, message.getSource(), new OpResponse(operation.id, Code.OK, previousValue + " -> " + operation.value)), net);
+
+            // Send write request to NNAR
+            pendingOperations.put(operation.id, message.getSource());
+            trigger(new ARWriteRequest(operation), nnar);
         }
     };
 
@@ -86,40 +93,74 @@ public class KVService extends ComponentDefinition {
         public void handle(CASOperation operation, Message message)
         {
             // TODO Implement
-            // TODO: NNAR
             LOG.info("Got operation {}", operation);
             trigger(new Message(self, message.getSource(), new OpResponse(operation.id, Code.NOT_IMPLEMENTED, "not implemented")), net);
         }
     };
 
-    protected final Handler<RBDeliver> incomingBroadcastHandler = new Handler<RBDeliver>()
+    protected final Handler<BEBDeliver> incomingBroadcastHandler = new Handler<BEBDeliver>()
     {
         @Override
-        public void handle(RBDeliver rbDeliver)
+        public void handle(BEBDeliver bebDeliver)
         {
-            LOG.info("Received RB broadcast - Source: " + rbDeliver.source + " - Payload: " + rbDeliver.payload);
+            LOG.info("Received BEB broadcast - Source: " + bebDeliver.source + " - Payload: " + bebDeliver.payload);
+        }
+    };
+
+    protected final Handler<ARReadResponse> arReadResponseHandler = new Handler<ARReadResponse>()
+    {
+        @Override
+        public void handle(ARReadResponse arReadResponse)
+        {
+            LOG.info("Got read response from NNAR: " + arReadResponse.toString());
+
+            NetAddress clientAddress = pendingOperations.get(arReadResponse.getOpId());
+
+            if (clientAddress == null)
+                return;
+
+            if (arReadResponse.getValue() == null)
+                trigger(new Message(self, clientAddress,
+                        new OpResponse(arReadResponse.getOpId(), Code.NOT_FOUND, "")),
+                        net);
+            else
+                trigger(new Message(self, clientAddress,
+                        new OpResponse(arReadResponse.getOpId(), Code.OK, arReadResponse.getValue().toString())),
+                        net);
+
+            pendingOperations.remove(arReadResponse.getOpId());
+        }
+    };
+
+    protected final Handler<ARWriteResponse> arWriteResponseHandler = new Handler<ARWriteResponse>()
+    {
+        @Override
+        public void handle(ARWriteResponse arWriteResponse)
+        {
+            LOG.info("Got write response from NNAR: " + arWriteResponse.toString());
+
+            NetAddress clientAddress = pendingOperations.get(arWriteResponse.getOpId());
+
+            if (clientAddress == null)
+                return;
+
+            trigger(new Message(self, clientAddress,
+                    new OpResponse(arWriteResponse.getOpId(), Code.OK, "Value was written")),
+                    net);
+
+            pendingOperations.remove(arWriteResponse.getOpId());
         }
     };
 
     //endregion
 
-    // TODO Remove this.
-    // Just add temp preloaded data to all nodes. All nodes get the same data, no partitioning stuff.
-    private void generatePreloadedData()
-    {
-        this.dataStore = new HashMap<>();
-
-        for (int i = 0; i < 10; i++)
-        {
-            this.dataStore.put(Integer.toString(i), "This is datavalue " + Integer.toString(i));
-        }
-    }
-
     {
         subscribe(getOpHandler, net);
         subscribe(putOpHandler, net);
         subscribe(casOpHandler, net);
-        subscribe(incomingBroadcastHandler, rb);
-        generatePreloadedData();
+        subscribe(incomingBroadcastHandler, beb);
+        subscribe(arReadResponseHandler, nnar);
+        subscribe(arWriteResponseHandler, nnar);
+        this.pendingOperations = new HashMap<>();
     }
 }

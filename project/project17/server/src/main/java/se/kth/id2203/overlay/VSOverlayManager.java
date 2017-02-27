@@ -35,6 +35,7 @@ import se.kth.id2203.broadcast.rb.ReliableBroadcastPort;
 import se.kth.id2203.epfd.EPFDPort;
 import se.kth.id2203.networking.Message;
 import se.kth.id2203.networking.NetAddress;
+import se.kth.id2203.nnar.AtomicRegisterPort;
 import se.sics.kompics.ClassMatchedHandler;
 import se.sics.kompics.ComponentDefinition;
 import se.sics.kompics.Handler;
@@ -64,8 +65,9 @@ public class VSOverlayManager extends ComponentDefinition
     protected final Positive<Network> net = requires(Network.class);
     protected final Positive<Timer> timer = requires(Timer.class);
     protected final Positive<BestEffortBroadcastPort> beb = requires(BestEffortBroadcastPort.class);
-    protected final Positive<ReliableBroadcastPort> rb = requires(ReliableBroadcastPort.class);
+    //protected final Positive<ReliableBroadcastPort> rb = requires(ReliableBroadcastPort.class);
     protected final Positive<EPFDPort> epfd = requires(EPFDPort.class);
+    protected final Positive<AtomicRegisterPort> nnar = requires(AtomicRegisterPort.class);
 
     // Fields
     final NetAddress self = config().getValue("id2203.project.address", NetAddress.class);
@@ -88,7 +90,6 @@ public class VSOverlayManager extends ComponentDefinition
 
     protected final Handler<Booted> bootHandler = new Handler<Booted>()
     {
-
         @Override
         public void handle(Booted event)
         {
@@ -98,7 +99,9 @@ public class VSOverlayManager extends ComponentDefinition
                 lut = (LookupTable) event.assignment;
                 sendTopologyToBroadcaster();
                 sendTopologyToFailureDetector();
-            } else
+                sendTopologyToAtomicRegister();
+            }
+            else
             {
                 LOG.error("Got invalid NodeAssignment type. Expected: LookupTable; Got: {}", event.assignment.getClass());
             }
@@ -163,6 +166,12 @@ public class VSOverlayManager extends ComponentDefinition
     {
         LOG.info("Sending topology to EPFD");
         trigger(new Topology(new HashSet<>(lut.getNodes())), epfd);
+    }
+
+    private void sendTopologyToAtomicRegister()
+    {
+        LOG.info("Sending topology to NNAR");
+        trigger(new Topology(new HashSet<>(lut.getNodes())), nnar);
     }
 
     {
