@@ -17,7 +17,7 @@ import java.util.*;
 
 public class AtomicRegister extends ComponentDefinition
 {
-    // TODO Stop using OriginatedBroadcastMessage
+    // TODO Stop using OriginatedBroadcastMessage?
 
     private final static Logger LOG = LoggerFactory.getLogger(AtomicRegister.class);
 

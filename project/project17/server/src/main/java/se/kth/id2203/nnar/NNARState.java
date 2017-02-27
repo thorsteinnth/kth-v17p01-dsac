@@ -10,8 +10,6 @@ import java.util.Map;
  * */
 public class NNARState
 {
-    private Tuple tuple;
-    private Object value;
     private int acks;
     private Object readVal;
     private Object writeVal;
@@ -20,33 +18,11 @@ public class NNARState
 
     public NNARState()
     {
-        tuple = new Tuple(0, 0);
-        value = null;
         acks = 0;
         readVal = null;
         writeVal = null;
         readList = new HashMap<>();
         reading = false;
-    }
-
-    public Tuple getTuple()
-    {
-        return tuple;
-    }
-
-    public void setTuple(Tuple tuple)
-    {
-        this.tuple = tuple;
-    }
-
-    public Object getValue()
-    {
-        return value;
-    }
-
-    public void setValue(Object value)
-    {
-        this.value = value;
     }
 
     public int getAcks()
@@ -82,11 +58,6 @@ public class NNARState
     public Map<NetAddress, Tuple> getReadList()
     {
         return readList;
-    }
-
-    public void setReadList(Map<NetAddress, Tuple> readList)
-    {
-        this.readList = readList;
     }
 
     public boolean isReading()
