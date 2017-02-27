@@ -58,4 +58,14 @@ public class OpsTest {
         Assert.assertEquals("NOT_FOUND", res.get("NONSENSE", String.class));
     }
 
+    @Test
+    public void simplePutTest() {
+
+        long seed = 123;
+        SimulationScenario.setSeed(seed);
+        SimulationScenario simplePutScenario = ScenarioGen.simplePut(4);
+
+        // TODO : Finish up simple put test
+    }
+
 }

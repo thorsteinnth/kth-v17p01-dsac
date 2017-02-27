@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.Map;
 import se.kth.id2203.ParentComponent;
 import se.kth.id2203.networking.NetAddress;
+import se.kth.id2203.simulation.epfd.ScenarioClient;
 import se.kth.id2203.simulation.ops.ScenarioClientGet;
 import se.sics.kompics.Init;
 import se.sics.kompics.network.Address;
@@ -141,7 +142,57 @@ public abstract class ScenarioGen {
         }
     };
 
+    private static final Operation1 startClientPutOp = new Operation1<StartNodeEvent, Integer>() {
+
+        @Override
+        public StartNodeEvent generate(final Integer self) {
+            return new StartNodeEvent() {
+                final NetAddress selfAdr;
+                final NetAddress bsAdr;
+
+                {
+                    try {
+                        selfAdr = new NetAddress(InetAddress.getByName("192.168.1." + self), 45678);
+                        bsAdr = new NetAddress(InetAddress.getByName("192.168.0.1"), 45678);
+                    } catch (UnknownHostException ex) {
+                        throw new RuntimeException(ex);
+                    }
+                }
+
+                @Override
+                public Address getNodeAddress() {
+                    return selfAdr;
+                }
+
+                @Override
+                public Class getComponentDefinition() {
+                    return ScenarioClientPut.class;
+                }
+
+                @Override
+                public String toString() {
+                    return "StartClient<" + selfAdr.toString() + ">";
+                }
+
+                @Override
+                public Init getComponentInit() {
+                    return Init.NONE;
+                }
+
+                @Override
+                public Map<String, Object> initConfigUpdate() {
+                    HashMap<String, Object> config = new HashMap<>();
+                    config.put("id2203.project.address", selfAdr);
+                    config.put("id2203.project.bootstrap-address", bsAdr);
+                    return config;
+                }
+            };
+        }
+    };
+
     public static SimulationScenario simpleOps(final int servers) {
+
+
         return new SimulationScenario() {
             {
                 SimulationScenario.StochasticProcess startCluster = new SimulationScenario.StochasticProcess() {
@@ -155,6 +206,29 @@ public abstract class ScenarioGen {
                     {
                         eventInterArrivalTime(constant(1000));
                         raise(1, startClientGetOp, new BasicIntSequentialDistribution(1));
+                    }
+                };
+                startCluster.start();
+                startClients.startAfterTerminationOf(10000, startCluster);
+                terminateAfterTerminationOf(100000, startClients);
+            }
+        };
+    }
+
+    public static SimulationScenario simplePut(final int servers) {
+        return new SimulationScenario() {
+            {
+                SimulationScenario.StochasticProcess startCluster = new SimulationScenario.StochasticProcess() {
+                    {
+                        eventInterArrivalTime(constant(1000));
+                        raise(servers, startServerOp, new BasicIntSequentialDistribution(1));
+                    }
+                };
+
+                SimulationScenario.StochasticProcess startClients = new SimulationScenario.StochasticProcess() {
+                    {
+                        eventInterArrivalTime(constant(1000));
+                        raise(1, startClientPutOp, new BasicIntSequentialDistribution(1));
                     }
                 };
                 startCluster.start();
