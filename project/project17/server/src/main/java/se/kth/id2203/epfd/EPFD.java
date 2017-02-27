@@ -2,7 +2,7 @@ package se.kth.id2203.epfd;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import se.kth.id2203.bootstrapping.BSTimeout;
+import se.kth.id2203.epfd.event.*;
 import se.kth.id2203.networking.Message;
 import se.kth.id2203.networking.NetAddress;
 import se.kth.id2203.overlay.Topology;
@@ -13,8 +13,6 @@ import se.sics.kompics.timer.Timer;
 
 import java.util.HashSet;
 import java.util.Set;
-
-import static se.sics.kompics.network.netty.serialization.Serializers.LOG;
 
 public class EPFD extends ComponentDefinition{
 
@@ -36,6 +34,8 @@ public class EPFD extends ComponentDefinition{
     private Set<NetAddress> suspected;
     private int seqNum;
     private Long delay;
+    private int stableCounter;
+    private boolean isStable;
 
     // Handlers
     protected final Handler<Start> startHandler = new Handler<Start>() {
@@ -48,6 +48,8 @@ public class EPFD extends ComponentDefinition{
             alive = new HashSet<>();
             suspected = new HashSet<>();
             delay = delta;
+            stableCounter = 0;
+            isStable = false;
         }
     };
 
@@ -75,7 +77,21 @@ public class EPFD extends ComponentDefinition{
 
             if(!suspectedAndAlive.isEmpty()) {
                 delay = delay + delta;
+                stableCounter = 0;
+                isStable = false;
             }
+            else if (!isStable){
+                // If the delay hasn't been increased for quite some time,
+                // we assume that the system is up and relatively stable
+                stableCounter = stableCounter + 1;
+
+                if (stableCounter > 25) {
+                    isStable = true;
+                    trigger(new SystemStable(true), epfd);
+                }
+            }
+
+
 
             seqNum = seqNum + 1;
 

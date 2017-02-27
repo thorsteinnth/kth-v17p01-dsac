@@ -1,13 +1,15 @@
-package se.kth.id2203.epfd;
+package se.kth.id2203.epfd.event;
 
 import se.kth.id2203.networking.NetAddress;
 import se.sics.kompics.KompicsEvent;
 
-public class Suspect implements KompicsEvent{
+import java.io.Serializable;
+
+public class Restore implements KompicsEvent, Serializable {
 
     private NetAddress address;
 
-    public Suspect(NetAddress address) {
+    public Restore(NetAddress address) {
         this.address = address;
     }
 

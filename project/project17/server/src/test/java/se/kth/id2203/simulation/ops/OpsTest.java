@@ -63,4 +63,14 @@ public class OpsTest {
         */
     }
 
+    @Test
+    public void simplePutTest() {
+
+        long seed = 123;
+        SimulationScenario.setSeed(seed);
+        SimulationScenario simplePutScenario = ScenarioGen.simplePut(4);
+
+        // TODO : Finish up simple put test
+    }
+
 }

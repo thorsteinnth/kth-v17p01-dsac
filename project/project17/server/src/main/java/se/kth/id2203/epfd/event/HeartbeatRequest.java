@@ -1,4 +1,4 @@
-package se.kth.id2203.epfd;
+package se.kth.id2203.epfd.event;
 
 import se.sics.kompics.KompicsEvent;
 

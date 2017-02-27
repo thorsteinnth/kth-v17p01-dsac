@@ -3,8 +3,9 @@ package se.kth.id2203.simulation.epfd;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import se.kth.id2203.epfd.EPFDPort;
-import se.kth.id2203.epfd.Restore;
-import se.kth.id2203.epfd.Suspect;
+import se.kth.id2203.epfd.event.Restore;
+import se.kth.id2203.epfd.event.Suspect;
+import se.kth.id2203.epfd.event.SystemStable;
 import se.kth.id2203.networking.NetAddress;
 import se.kth.id2203.overlay.Topology;
 import se.kth.id2203.simulation.SimulationResultMap;
@@ -83,9 +84,20 @@ public class ScenarioClient extends ComponentDefinition {
         }
     };
 
+    protected final Handler<SystemStable> systemStableHandler = new Handler<SystemStable>() {
+
+        @Override
+        public void handle(SystemStable systemStable) {
+            if (systemStable.getIsStable()) {
+                res.put("systemStable", true);
+            }
+        }
+    };
+
     {
         subscribe(startHandler, control);
         subscribe(suspectHandler, epfd);
         subscribe(restoreHandler, epfd);
+        subscribe(systemStableHandler, epfd);
     }
 }

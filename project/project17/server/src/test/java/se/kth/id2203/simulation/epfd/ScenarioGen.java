@@ -181,7 +181,7 @@ public abstract class ScenarioGen {
                 startClients.start();
                 //observer.startAfterTerminationOf(0, startClients);
                 killClients.startAfterTerminationOf(2000, startClients);
-                terminateAfterTerminationOf(100000, startClients);
+                terminateAfterTerminationOf(10*100000, startClients);
             }
         };
     }
@@ -203,7 +203,7 @@ public abstract class ScenarioGen {
                 };
 
                 startClients.start();
-                terminateAfterTerminationOf(100000, startClients);
+                terminateAfterTerminationOf(10*100000, startClients);
             }
         };
     }
