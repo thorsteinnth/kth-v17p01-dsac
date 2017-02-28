@@ -12,19 +12,19 @@ public class Decide implements KompicsEvent, Serializable
     public int ts;
 
     /**
-     * Length of learned seq
+     * Length of learned seq (proposer)
      */
-    public int pl;
+    public int l;
 
     /**
      * Logical clock
      */
     public int t_prime;
 
-    public Decide(int ts, int pl, int t_prime)
+    public Decide(int ts, int l, int t_prime)
     {
         this.ts = ts;
-        this.pl = pl;
+        this.l = l;
         this.t_prime = t_prime;
     }
 }

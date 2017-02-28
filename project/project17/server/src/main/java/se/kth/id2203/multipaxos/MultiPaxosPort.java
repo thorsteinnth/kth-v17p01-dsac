@@ -8,7 +8,8 @@ public class MultiPaxosPort extends PortType
     public MultiPaxosPort()
     {
         request(Propose.class);
-        indication(Abort.class);
         request(Topology.class);
+        indication(Abort.class);
+        indication(DecideResult.class);
     }
 }

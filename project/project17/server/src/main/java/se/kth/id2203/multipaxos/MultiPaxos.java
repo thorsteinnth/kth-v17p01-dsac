@@ -381,6 +381,26 @@ public class MultiPaxos extends ComponentDefinition
         }
     };
 
+    public final ClassMatchedHandler<Decide, Message> decideHandler = new ClassMatchedHandler<Decide, Message>()
+    {
+        @Override
+        public void handle(Decide decide, Message message)
+        {
+            LOG.info(self + " - Got decide {}", decide);
+
+            t = Math.max(t, decide.t_prime) + 1;
+
+            if (decide.ts == prepts)
+            {
+                while (al < decide.l)
+                {
+                    trigger(new DecideResult(av.get(al)), mpaxos);
+                    al++;
+                }
+            }
+        }
+    };
+
     //endregion Accept phase
 
     //endregion Handlers
@@ -442,5 +462,6 @@ public class MultiPaxos extends ComponentDefinition
         subscribe(prepareAckHandler, net);
         subscribe(acceptHandler, net);
         subscribe(acceptAckHandler, net);
+        subscribe(decideHandler, net);
     }
 }
