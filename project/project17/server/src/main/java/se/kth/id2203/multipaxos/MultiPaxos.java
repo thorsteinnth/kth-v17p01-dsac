@@ -342,6 +342,45 @@ public class MultiPaxos extends ComponentDefinition
         }
     };
 
+    private final ClassMatchedHandler<AcceptAck, Message> acceptAckHandler = new ClassMatchedHandler<AcceptAck, Message>()
+    {
+        @Override
+        public void handle(AcceptAck acceptAck, Message message)
+        {
+            LOG.info(self + " - Got accept ack {}", acceptAck);
+
+            t = Math.max(t, acceptAck.t_prime) + 1;
+
+            if (acceptAck.pts_prime == pts)
+            {
+                accepted.put(message.getSource(), acceptAck.l);
+
+                // Number of processes that the proposer knows that have longer or equal accepted sequence then
+                // the accepted ack accepted sequence
+                int numberOfProcessesWithLongerOrEqAcceptedSeq = 0;
+                for (int length : accepted.values())
+                {
+                    if(length >= acceptAck.l)
+                        numberOfProcessesWithLongerOrEqAcceptedSeq++;
+                }
+
+                if ((pl < acceptAck.l) && (numberOfProcessesWithLongerOrEqAcceptedSeq > Math.floor(getN()/2)))
+                {
+                    pl = acceptAck.l;
+
+                    for (NetAddress p : readlist.keySet())
+                    {
+                        if (readlist.get(p) != null)
+                        {
+                            Decide decide = new Decide(pts, pl, t);
+                            trigger(new Message(self, p, decide), net);
+                        }
+                    }
+                }
+            }
+        }
+    };
+
     //endregion Accept phase
 
     //endregion Handlers
@@ -400,6 +439,8 @@ public class MultiPaxos extends ComponentDefinition
         subscribe(proposeHandler, mpaxos);
         subscribe(prepareHandler, net);
         subscribe(nackHandler, net);
+        subscribe(prepareAckHandler, net);
         subscribe(acceptHandler, net);
+        subscribe(acceptAckHandler, net);
     }
 }

@@ -9,7 +9,7 @@ public class AcceptAck implements KompicsEvent, Serializable
     /**
      * Timestamp (proposer)
      */
-    public int ts;
+    public int pts_prime;
 
     /**
      * Length of accepted sequence
@@ -21,9 +21,9 @@ public class AcceptAck implements KompicsEvent, Serializable
      */
     public int t_prime;
 
-    public AcceptAck(int ts, int l, int t_prime)
+    public AcceptAck(int pts_prime, int l, int t_prime)
     {
-        this.ts = ts;
+        this.pts_prime = pts_prime;
         this.l = l;
         this.t_prime = t_prime;
     }
@@ -32,7 +32,7 @@ public class AcceptAck implements KompicsEvent, Serializable
     public String toString()
     {
         return "AcceptAck{" +
-                "ts=" + ts +
+                "pts_prime=" + pts_prime +
                 ", l=" + l +
                 ", t_prime=" + t_prime +
                 '}';
