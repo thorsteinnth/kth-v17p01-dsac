@@ -153,6 +153,8 @@ public class MultiPaxos extends ComponentDefinition
                 proposedValues.clear();
                 proposedValues.add(propose.value);
 
+                // TODO Should we be clearing the maps here? So their size will be 0.
+
                 for (NetAddress key : readlist.keySet())
                     readlist.put(key, null);
 
@@ -194,9 +196,45 @@ public class MultiPaxos extends ComponentDefinition
         }
     };
 
+    private final ClassMatchedHandler<Prepare, Message> prepareHandler = new ClassMatchedHandler<Prepare, Message>()
+    {
+        @Override
+        public void handle(Prepare prepare, Message message)
+        {
+            LOG.info(self + " - Got prepare {}", prepare);
 
+            t = Math.max(t, prepare.t_prime) + 1;
 
+            if (prepare.ts < prepts)
+            {
+                Nack nack = new Nack(prepare.ts, t);
+                trigger(new Message(self, message.getSource(), nack), net);
+            }
+            else
+            {
+                prepts = prepare.ts;
+                PrepareAck prepareAck = new PrepareAck(prepare.ts, ats, suffix(av, prepare.l), al, t);
+                trigger(new Message(self, message.getSource(), prepareAck), net);
+            }
+        }
+    };
 
+    private final ClassMatchedHandler<Nack, Message> nackHandler = new ClassMatchedHandler<Nack, Message>()
+    {
+        @Override
+        public void handle(Nack nack, Message message)
+        {
+            LOG.info(self + " - Got NACK {}", nack);
+
+            t = Math.max(t, nack.t_prime) + 1;
+
+            if (nack.pts_prime == pts)
+            {
+                pts = 0;
+                trigger(new Abort(), mpaxos);
+            }
+        }
+    };
 
     //region Accept phase
 
@@ -234,18 +272,17 @@ public class MultiPaxos extends ComponentDefinition
 
     //endregion Accept phase
 
-
     //endregion Handlers
 
     //region Methods
 
-    /**
-     *
-     * @param av Acceptor's accepted sequence
-     * @param al Acceptor's length of dedided sequence
-     * @return
-     */
-    private List<Object> prefix(List<Object> av, int al)
+    private List<Object> prefix(List<Object> v, int l)
+    {
+        // TODO
+        return new ArrayList<>();
+    }
+
+    private List<Object> suffix(List<Object> v, int l)
     {
         // TODO
         return new ArrayList<>();
@@ -265,5 +302,7 @@ public class MultiPaxos extends ComponentDefinition
 
     {
         subscribe(proposeHandler, mpaxos);
+        subscribe(prepareHandler, net);
+        subscribe(nackHandler, net);
     }
 }
