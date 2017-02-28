@@ -219,6 +219,23 @@ public class MultiPaxos extends ComponentDefinition
         }
     };
 
+    private final ClassMatchedHandler<Nack, Message> nackHandler = new ClassMatchedHandler<Nack, Message>()
+    {
+        @Override
+        public void handle(Nack nack, Message message)
+        {
+            LOG.info(self + " - Got NACK {}", nack);
+
+            t = Math.max(t, nack.t_prime) + 1;
+
+            if (nack.pts_prime == pts)
+            {
+                pts = 0;
+                trigger(new Abort(), mpaxos);
+            }
+        }
+    };
+
     //endregion
 
     //region Methods
@@ -250,5 +267,6 @@ public class MultiPaxos extends ComponentDefinition
     {
         subscribe(proposeHandler, mpaxos);
         subscribe(prepareHandler, net);
+        subscribe(nackHandler, net);
     }
 }
