@@ -136,6 +136,8 @@ public class MultiPaxos extends ComponentDefinition
         }
     };
 
+    // region Prepare phase
+
     private final Handler<Propose> proposeHandler = new Handler<Propose>()
     {
         @Override
@@ -236,7 +238,44 @@ public class MultiPaxos extends ComponentDefinition
         }
     };
 
-    //endregion
+    // endregion Prepare phase
+
+    //region Accept phase
+
+    protected final ClassMatchedHandler<Accept, Message> acceptHandler = new ClassMatchedHandler<Accept, Message>()
+    {
+        @Override
+        public void handle(Accept accept, Message message)
+        {
+            t = Math.max(t, accept.t_prime) + 1;
+
+            if(accept.ts != prepts)
+            {
+                Nack nack = new Nack(accept.ts, t);
+                trigger(new Message(self, message.getSource(), nack), net);
+            }
+            else
+            {
+                ats = accept.ts;
+
+                // if length of proposer's proposed sequence is less then length of accepted sequence
+                if (accept.offs < av.size())
+                {
+                    av = prefix(av, accept.offs);
+                }
+
+                // add sequence with proposed value to accepted sequence
+                av.addAll(accept.vsuf);
+
+                AcceptAck acceptAck = new AcceptAck(accept.ts, av.size(), t);
+                trigger(new Message(self, message.getSource(), acceptAck), net);
+            }
+        }
+    };
+
+    //endregion Accept phase
+
+    //endregion Handlers
 
     //region Methods
 
@@ -292,5 +331,6 @@ public class MultiPaxos extends ComponentDefinition
         subscribe(proposeHandler, mpaxos);
         subscribe(prepareHandler, net);
         subscribe(nackHandler, net);
+        subscribe(acceptHandler, net);
     }
 }
