@@ -158,6 +158,7 @@ public class MultiPaxos extends ComponentDefinition
                 proposedValues.add(propose.value);
 
                 // TODO Should we be clearing the maps here? So their size will be 0.
+                // TODO No it doesn't work it seems
 
                 for (NetAddress key : readlist.keySet())
                     readlist.put(key, null);
@@ -176,7 +177,8 @@ public class MultiPaxos extends ComponentDefinition
             }
             // TODO is keySet.size() correct? Or should this be the number of non null values in the readlist.
             // TODO Probably the number of non null values.
-            else if (readlist.keySet().size() <= Math.floor(getN()/2))
+            //else if (readlist.keySet().size() <= Math.floor(getN()/2))
+            else if (nonNullReadlistValueSize() <= Math.floor(getN()/2))
             {
                 // Append to sequence
                 proposedValues.add(propose.value);
@@ -448,6 +450,22 @@ public class MultiPaxos extends ComponentDefinition
         }
 
         return suffix;
+    }
+
+    /**
+     * Get count of values in readlist (map) that are not null.
+     * @return Count of values in readlist that are not null.
+     */
+    private int nonNullReadlistValueSize()
+    {
+        int count = 0;
+        for (ReadlistEntry entry : readlist.values())
+        {
+            if (entry != null)
+                count++;
+        }
+
+        return count;
     }
 
     private int getN()
