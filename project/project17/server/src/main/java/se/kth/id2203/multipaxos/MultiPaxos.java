@@ -88,7 +88,7 @@ public class MultiPaxos extends ComponentDefinition
     /**
      *
      */
-    private Map<NetAddress, Object> readlist;
+    private Map<NetAddress, ReadlistEntry> readlist;
 
     /**
      * Proposer's knowledge about length of acceptor's longest accepted sequence
@@ -242,11 +242,80 @@ public class MultiPaxos extends ComponentDefinition
 
     //region Accept phase
 
-    protected final ClassMatchedHandler<Accept, Message> acceptHandler = new ClassMatchedHandler<Accept, Message>()
+    private final ClassMatchedHandler<PrepareAck, Message> prepareAckHandler = new ClassMatchedHandler<PrepareAck, Message>()
+    {
+        @Override
+        public void handle(PrepareAck prepareAck, Message message)
+        {
+            LOG.info(self + " - Got prepare ack {}", prepareAck);
+
+            t = Math.max(t, prepareAck.t_prime) + 1;
+
+            if (prepareAck.pts_prime == pts)
+            {
+                readlist.put(message.getSource(), new ReadlistEntry(prepareAck.ts, prepareAck.vsuf));
+                decided.put(message.getSource(), prepareAck.l);
+
+                // Find the readlist entry with highest TS, and if two TS are equal,
+                // with longest value suffix
+                if (readlist.keySet().size() == (Math.floor(getN()/2) + 1))
+                {
+                    ReadlistEntry highestEntry = new ReadlistEntry(0, new ArrayList<>());
+
+                    for (ReadlistEntry entry : readlist.values())
+                    {
+                        if(highestEntry.lessThan(entry))
+                        {
+                            highestEntry.ts = entry.ts;
+                            highestEntry.vsuf = entry.vsuf;
+                        }
+                    }
+
+                    pv.add(highestEntry.vsuf);
+
+                    for (Object value : proposedValues)
+                    {
+                        if (!pv.contains(value))
+                        {
+                            pv.add(value);
+                        }
+                    }
+
+                    // New length of decided sequence
+                    int newl = 0;
+
+                    for (NetAddress p : readlist.keySet())
+                    {
+                        if (readlist.get(p) != null)
+                        {
+                            newl = decided.get(p);
+                            Accept accept = new Accept(pts, suffix(pv, newl), newl, t);
+                            trigger(new Message(self, p, accept), net);
+                        }
+                    }
+                }
+                else if (readlist.keySet().size() > (Math.floor(getN()/2) + 1))
+                {
+                    Accept accept = new Accept(pts, suffix(pv, prepareAck.l), prepareAck.l, t);
+                    trigger(new Message(self, message.getSource(), accept), net);
+
+                    if (pl != 0)
+                    {
+                        Decide decide = new Decide(pts, pl, t);
+                        trigger(new Message(self, message.getSource(), decide), net);
+                    }
+                }
+            }
+        }
+    };
+
+    private final ClassMatchedHandler<Accept, Message> acceptHandler = new ClassMatchedHandler<Accept, Message>()
     {
         @Override
         public void handle(Accept accept, Message message)
         {
+            LOG.info(self + " - Got accept {}", accept);
+
             t = Math.max(t, accept.t_prime) + 1;
 
             if(accept.ts != prepts)
