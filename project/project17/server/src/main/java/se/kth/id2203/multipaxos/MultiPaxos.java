@@ -240,16 +240,40 @@ public class MultiPaxos extends ComponentDefinition
 
     //region Methods
 
+    /**
+     * Get prefix of list
+     * @param v
+     * @param l
+     * @return list with first l elements of v
+     */
     private List<Object> prefix(List<Object> v, int l)
     {
-        // TODO
-        return new ArrayList<>();
+        List<Object> prefix = new ArrayList<>();
+
+        int i = 0;
+        while (i < v.size() && i < l)
+            prefix.add(v.get(i++));
+
+        return prefix;
     }
 
+    /**
+     * Get suffix of list
+     * @param v
+     * @param l
+     * @return list with all elements of v after the first l elements
+     */
     private List<Object> suffix(List<Object> v, int l)
     {
-        // TODO
-        return new ArrayList<>();
+        List<Object> suffix = new ArrayList<>();
+
+        if (l < v.size())
+        {
+            for (int i = l-1; i < v.size(); i++)
+                suffix.add(v.get(i));
+        }
+
+        return suffix;
     }
 
     private int getN()
