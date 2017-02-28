@@ -9,10 +9,8 @@ public final class AtomicRegisterPort extends PortType {
     public AtomicRegisterPort() {
         request(ARReadRequest.class);
         request(ARWriteRequest.class);
-        request(ARCASRequest.class);
         indication(ARReadResponse.class);
         indication(ARWriteResponse.class);
-        indication(ARCASResponse.class);
         request(Topology.class);
     }
 }
