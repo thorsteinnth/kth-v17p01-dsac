@@ -33,6 +33,7 @@ import se.kth.id2203.bootstrapping.*;
 import se.kth.id2203.broadcast.beb.BestEffortBroadcastPort;
 import se.kth.id2203.broadcast.rb.ReliableBroadcastPort;
 import se.kth.id2203.epfd.EPFDPort;
+import se.kth.id2203.multipaxos.MultiPaxosPort;
 import se.kth.id2203.networking.Message;
 import se.kth.id2203.networking.NetAddress;
 import se.kth.id2203.nnar.AtomicRegisterPort;
@@ -68,6 +69,7 @@ public class VSOverlayManager extends ComponentDefinition
     //protected final Positive<ReliableBroadcastPort> rb = requires(ReliableBroadcastPort.class);
     protected final Positive<EPFDPort> epfd = requires(EPFDPort.class);
     protected final Positive<AtomicRegisterPort> nnar = requires(AtomicRegisterPort.class);
+    protected final Positive<MultiPaxosPort> mpaxos = requires(MultiPaxosPort.class);
 
     // Fields
     final NetAddress self = config().getValue("id2203.project.address", NetAddress.class);
@@ -100,6 +102,7 @@ public class VSOverlayManager extends ComponentDefinition
                 sendTopologyToBroadcaster();
                 sendTopologyToFailureDetector();
                 sendTopologyToAtomicRegister();
+                sendTopologyToMultiPaxos();
             }
             else
             {
@@ -172,6 +175,12 @@ public class VSOverlayManager extends ComponentDefinition
     {
         LOG.info("Sending topology to NNAR");
         trigger(new Topology(new HashSet<>(lut.getNodes())), nnar);
+    }
+
+    private void sendTopologyToMultiPaxos()
+    {
+        LOG.info("Sending topology to multi paxos");
+        trigger(new Topology(new HashSet<>(lut.getNodes())), mpaxos);
     }
 
     {

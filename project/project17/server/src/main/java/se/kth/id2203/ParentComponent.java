@@ -11,6 +11,8 @@ import se.kth.id2203.broadcast.rb.ReliableBroadcastPort;
 import se.kth.id2203.epfd.EPFD;
 import se.kth.id2203.epfd.EPFDPort;
 import se.kth.id2203.kvstore.KVService;
+import se.kth.id2203.multipaxos.MultiPaxos;
+import se.kth.id2203.multipaxos.MultiPaxosPort;
 import se.kth.id2203.networking.NetAddress;
 import se.kth.id2203.nnar.AtomicRegister;
 import se.kth.id2203.nnar.AtomicRegisterPort;
@@ -39,6 +41,7 @@ public class ParentComponent
     //protected final Component rb = create(ReliableBroadcast.class, Init.NONE);
     protected final Component epfd = create(EPFD.class, Init.NONE);
     protected final Component nnar = create(AtomicRegister.class, Init.NONE);
+    protected final Component mpaxos = create(MultiPaxos.class, Init.NONE);
 
     {
 
@@ -56,12 +59,14 @@ public class ParentComponent
         //connect(rb.getPositive(ReliableBroadcastPort.class), overlay.getNegative(ReliableBroadcastPort.class), Channel.TWO_WAY);
         connect(epfd.getPositive(EPFDPort.class), overlay.getNegative(EPFDPort.class), Channel.TWO_WAY);
         connect(nnar.getPositive(AtomicRegisterPort.class), overlay.getNegative(AtomicRegisterPort.class), Channel.TWO_WAY);
+        connect(mpaxos.getPositive(MultiPaxosPort.class), overlay.getNegative(MultiPaxosPort.class), Channel.TWO_WAY);
         connect(net, overlay.getNegative(Network.class), Channel.TWO_WAY);
         // KV
         connect(overlay.getPositive(Routing.class), kv.getNegative(Routing.class), Channel.TWO_WAY);
         //connect(rb.getPositive(ReliableBroadcastPort.class), kv.getNegative(ReliableBroadcastPort.class), Channel.TWO_WAY);
         connect(beb.getPositive(BestEffortBroadcastPort.class), kv.getNegative(BestEffortBroadcastPort.class), Channel.TWO_WAY);
         connect(nnar.getPositive(AtomicRegisterPort.class), kv.getNegative(AtomicRegisterPort.class), Channel.TWO_WAY);
+        connect(mpaxos.getPositive(MultiPaxosPort.class), kv.getNegative(MultiPaxosPort.class), Channel.TWO_WAY);
         connect(net, kv.getNegative(Network.class), Channel.TWO_WAY);
         // Best effort broadcast
         connect(net, beb.getNegative(Network.class), Channel.TWO_WAY);
@@ -73,5 +78,7 @@ public class ParentComponent
         // NN Atomic Register
         connect(net, nnar.getNegative(Network.class), Channel.TWO_WAY);
         connect(beb.getPositive(BestEffortBroadcastPort.class), nnar.getNegative(BestEffortBroadcastPort.class), Channel.TWO_WAY);
+        // Multi paxos
+        connect(net, mpaxos.getNegative(Network.class), Channel.TWO_WAY);
     }
 }

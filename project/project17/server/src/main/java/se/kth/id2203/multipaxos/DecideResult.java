@@ -12,4 +12,12 @@ public class DecideResult implements KompicsEvent, Serializable
     {
         this.object = object;
     }
+
+    @Override
+    public String toString()
+    {
+        return "DecideResult{" +
+                "object=" + object +
+                '}';
+    }
 }

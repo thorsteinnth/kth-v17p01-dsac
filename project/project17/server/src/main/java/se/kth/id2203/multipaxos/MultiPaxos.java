@@ -16,6 +16,8 @@ import java.util.*;
  * */
 public class MultiPaxos extends ComponentDefinition
 {
+    // TODO Make paxos work with Operation objects instead of just Objects?
+
     //region Ports
 
     private final Positive<Network> net = requires(Network.class);
@@ -432,6 +434,11 @@ public class MultiPaxos extends ComponentDefinition
      */
     private List<Object> suffix(List<Object> v, int l)
     {
+        System.out.println(self + " VALUE OF l: " + l);
+
+        if (l == 0)
+            return v;
+
         List<Object> suffix = new ArrayList<>();
 
         if (l < v.size())
@@ -456,7 +463,11 @@ public class MultiPaxos extends ComponentDefinition
     //endregion
 
     {
+        subscribe(startHandler, control);
+
         subscribe(proposeHandler, mpaxos);
+        subscribe(topologyHandler, mpaxos);
+
         subscribe(prepareHandler, net);
         subscribe(nackHandler, net);
         subscribe(prepareAckHandler, net);

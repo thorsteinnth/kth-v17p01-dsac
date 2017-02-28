@@ -28,6 +28,10 @@ import org.slf4j.LoggerFactory;
 import se.kth.id2203.broadcast.beb.BEBDeliver;
 import se.kth.id2203.broadcast.beb.BestEffortBroadcastPort;
 import se.kth.id2203.kvstore.OpResponse.Code;
+import se.kth.id2203.multipaxos.Abort;
+import se.kth.id2203.multipaxos.DecideResult;
+import se.kth.id2203.multipaxos.MultiPaxosPort;
+import se.kth.id2203.multipaxos.Propose;
 import se.kth.id2203.networking.Message;
 import se.kth.id2203.networking.NetAddress;
 import se.kth.id2203.nnar.AtomicRegisterPort;
@@ -44,6 +48,8 @@ import java.util.UUID;
 
 public class KVService extends ComponentDefinition {
 
+    // TODO Use MultiPaxos and RSM operation sequence instead of NNAR
+
     private final static Logger LOG = LoggerFactory.getLogger(KVService.class);
 
     // Ports
@@ -51,6 +57,7 @@ public class KVService extends ComponentDefinition {
     protected final Positive<Routing> route = requires(Routing.class);
     protected final Positive<BestEffortBroadcastPort> beb = requires(BestEffortBroadcastPort.class);
     protected final Positive<AtomicRegisterPort> nnar = requires(AtomicRegisterPort.class);
+    protected final Positive<MultiPaxosPort> mpaxos = requires(MultiPaxosPort.class);
 
     // Fields
     final NetAddress self = config().getValue("id2203.project.address", NetAddress.class);
@@ -84,6 +91,9 @@ public class KVService extends ComponentDefinition {
             // Send write request to NNAR
             pendingOperations.put(operation.id, message.getSource());
             trigger(new ARWriteRequest(operation), nnar);
+
+            // Send write request to mpaxos
+            trigger(new Propose(operation), mpaxos);
         }
     };
 
@@ -152,6 +162,28 @@ public class KVService extends ComponentDefinition {
         }
     };
 
+    //region Paxos handlers
+
+    private final Handler<DecideResult> decideResultHandler = new Handler<DecideResult>()
+    {
+        @Override
+        public void handle(DecideResult decideResult)
+        {
+            LOG.info(self + " - Got decide result from mpaxos: " + decideResult);
+        }
+    };
+
+    private final Handler<Abort> abortHandler = new Handler<Abort>()
+    {
+        @Override
+        public void handle(Abort abort)
+        {
+            LOG.info(self + " - Got abort from mpaxos: " + abort);
+        }
+    };
+
+    //endregion
+
     //endregion
 
     {
@@ -161,6 +193,8 @@ public class KVService extends ComponentDefinition {
         subscribe(incomingBroadcastHandler, beb);
         subscribe(arReadResponseHandler, nnar);
         subscribe(arWriteResponseHandler, nnar);
+        subscribe(decideResultHandler, mpaxos);
+        subscribe(abortHandler, mpaxos);
         this.pendingOperations = new HashMap<>();
     }
 }
