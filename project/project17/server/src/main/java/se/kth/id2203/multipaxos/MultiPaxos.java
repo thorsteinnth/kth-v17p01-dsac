@@ -136,6 +136,8 @@ public class MultiPaxos extends ComponentDefinition
         }
     };
 
+    // region Prepare phase
+
     private final Handler<Propose> proposeHandler = new Handler<Propose>()
     {
         @Override
@@ -236,8 +238,9 @@ public class MultiPaxos extends ComponentDefinition
         }
     };
 
-    //region Accept phase
+    // endregion Prepare phase
 
+    //region Accept phase
 
     protected final ClassMatchedHandler<Accept, Message> acceptHandler = new ClassMatchedHandler<Accept, Message>()
     {
@@ -248,14 +251,14 @@ public class MultiPaxos extends ComponentDefinition
 
             if(accept.ts != prepts)
             {
-                //Nack nack = new Nack(accept.ts, t);
-                //trigger(new Message(self, message.getSource(), nack), net);
+                Nack nack = new Nack(accept.ts, t);
+                trigger(new Message(self, message.getSource(), nack), net);
             }
             else
             {
                 ats = accept.ts;
 
-                // if lenght of proposer's proposed sequence is less then length of accepted sequence
+                // if length of proposer's proposed sequence is less then length of accepted sequence
                 if (accept.offs < av.size())
                 {
                     av = prefix(av, accept.offs);
@@ -264,8 +267,8 @@ public class MultiPaxos extends ComponentDefinition
                 // add sequence with proposed value to accepted sequence
                 av.addAll(accept.vsuf);
 
-                //AcceptAck acceptAck = new AcceptAck(ts, av.size(), t);
-                //trigger(new Message(self, message.getSource(), acceptAck), net);
+                AcceptAck acceptAck = new AcceptAck(accept.ts, av.size(), t);
+                trigger(new Message(self, message.getSource(), acceptAck), net);
             }
         }
     };
@@ -304,5 +307,6 @@ public class MultiPaxos extends ComponentDefinition
         subscribe(proposeHandler, mpaxos);
         subscribe(prepareHandler, net);
         subscribe(nackHandler, net);
+        subscribe(acceptHandler, net);
     }
 }
