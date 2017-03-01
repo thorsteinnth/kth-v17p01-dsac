@@ -106,9 +106,11 @@ public class KVService extends ComponentDefinition
         @Override
         public void handle(CASOperation operation, Message message)
         {
-            // TODO Implement
             LOG.info("Got operation {}", operation);
-            trigger(new Message(self, message.getSource(), new OpResponse(operation.id, Code.NOT_IMPLEMENTED, "not implemented")), net);
+
+            pendingOperations.put(operation.id, message.getSource());
+
+            trigger(new Propose(operation), mpaxos);
         }
     };
 
@@ -227,6 +229,52 @@ public class KVService extends ComponentDefinition
                         trigger(new Message(self, clientAddress, new OpResponse(operation.id, Code.NOT_FOUND, "")), net);
                     else
                         trigger(new Message(self, clientAddress, new OpResponse(operation.id, Code.OK, value)), net);
+
+                    // Remove operation from pending operations
+                    LOG.debug(self + " - Removing operation from pending: " + operation);
+                    pendingOperations.remove(operation.id);
+                }
+                else if (decideResult.object instanceof CASOperation)
+                {
+                    // Perform operation
+                    CASOperation operation = (CASOperation)decideResult.object;
+                    String currentValue = datastore.get(operation.key);
+
+                    boolean success = false;
+                    String oldValue = "";
+
+                    if (currentValue.equals(operation.referenceValue))
+                    {
+                        success = true;
+                        oldValue = datastore.put(operation.key, operation.newValue);
+                    }
+
+                    // Send response to client, if we have have this operation in our pending list.
+                    // Note that only the server that got the request from the client has it in its pending list
+                    // and should respond to the client. Other servers do not communicate with the client.
+                    NetAddress clientAddress = pendingOperations.get(operation.id);
+
+                    if (clientAddress == null)
+                        return;
+
+                    if (success)
+                    {
+                        OpResponse opResponse = new OpResponse(
+                                operation.id,
+                                Code.OK,
+                                "Old val: " + oldValue + ", new val: " + operation.newValue
+                        );
+                        trigger(new Message(self, clientAddress, opResponse), net);
+                    }
+                    else
+                    {
+                        OpResponse opResponse = new OpResponse(
+                                operation.id,
+                                Code.NOT_SAME_VALUE,
+                                "Current val: " + currentValue
+                        );
+                        trigger(new Message(self, clientAddress, opResponse), net);
+                    }
 
                     // Remove operation from pending operations
                     LOG.debug(self + " - Removing operation from pending: " + operation);
