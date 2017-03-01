@@ -6,6 +6,7 @@ import se.kth.id2203.epfd.EPFDPort;
 import se.kth.id2203.epfd.event.Restore;
 import se.kth.id2203.epfd.event.Suspect;
 import se.kth.id2203.epfd.event.SystemStable;
+import se.kth.id2203.networking.Message;
 import se.kth.id2203.networking.NetAddress;
 import se.kth.id2203.overlay.Topology;
 import se.kth.id2203.simulation.SimulationResultMap;
@@ -20,6 +21,8 @@ import se.sics.kompics.simulator.network.identifier.Identifier;
 import se.sics.kompics.simulator.util.GlobalView;
 import se.sics.kompics.timer.Timer;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.*;
 
 public class ScenarioClient extends ComponentDefinition {
@@ -33,32 +36,28 @@ public class ScenarioClient extends ComponentDefinition {
 
     // Fields
     private final NetAddress self = config().getValue("id2203.project.address", NetAddress.class);
-    private final NetAddress server = config().getValue("id2203.project.bootstrap-address", NetAddress.class);
+    private NetAddress observerAddress;
 
     private final SimulationResultMap res = SimulationResultSingleton.getInstance();
     private List<String> suspected;
+    private Topology topology;
 
-    protected final Handler<Start> startHandler = new Handler<Start>() {
-
-        @Override
-        public void handle(Start event) {
-
-            GlobalView globalView = config().getValue("simulation.globalview", GlobalView.class);
-            Set<NetAddress> nodes = new HashSet<>();
-            suspected = new ArrayList<>();
-
-            for (Map.Entry<Identifier, Address> entry : globalView.getAliveNodes().entrySet())
-            {
-                LOG.debug("EPFD Test: Printing global view");
-                LOG.debug(entry.getKey() + "/" + entry.getValue());
-
-                nodes.add(new NetAddress(entry.getValue().getIp(), entry.getValue().getPort()));
-            }
-
-            LOG.info("Sending topology to EPFD");
-            trigger(new Topology(nodes), epfd);
+    public ScenarioClient()
+    {
+        try
+        {
+            observerAddress = new NetAddress(InetAddress.getByName("0.0.0.0"), 0);
         }
-    };
+        catch (UnknownHostException ex)
+        {
+            throw new RuntimeException(ex);
+        }
+
+        subscribe(suspectHandler, epfd);
+        subscribe(restoreHandler, epfd);
+        subscribe(systemStableHandler, epfd);
+        subscribe(observerMessageHandler, net);
+    }
 
     protected final Handler<Suspect> suspectHandler = new Handler<Suspect>() {
 
@@ -66,8 +65,10 @@ public class ScenarioClient extends ComponentDefinition {
         public void handle(Suspect suspect) {
             LOG.debug("EPFD Test: got a suspected process: " + suspect.getAddress());
 
-            suspected.add(suspect.getAddress().toString());
-            res.put(self.toString(), suspected);
+            if (suspected != null && suspect.getAddress() != observerAddress) {
+                suspected.add(suspect.getAddress().toString());
+                res.put(self.toString(), suspected);
+            }
         }
     };
 
@@ -75,7 +76,7 @@ public class ScenarioClient extends ComponentDefinition {
 
         @Override
         public void handle(Restore restore) {
-            if (res.keySet().contains(restore.getAddress().toString())) {
+            if (suspected != null && res.keySet().contains(restore.getAddress().toString())) {
                 LOG.debug("EPFD Test: removing a suspect: " + restore.getAddress());
 
                 suspected.remove(restore.getAddress().toString());
@@ -94,10 +95,38 @@ public class ScenarioClient extends ComponentDefinition {
         }
     };
 
+    protected final Handler<Message> observerMessageHandler = new Handler<Message>()
     {
-        subscribe(startHandler, control);
-        subscribe(suspectHandler, epfd);
-        subscribe(restoreHandler, epfd);
-        subscribe(systemStableHandler, epfd);
+        @Override
+        public void handle(Message message)
+        {
+
+            if (message.payload instanceof GetTopology)
+            {
+                suspected = new ArrayList<>();
+                topology = new Topology(getNodes());
+
+                LOG.info("Sending topology to EPFD, size=" + topology.nodes.size());
+                trigger(topology, epfd);
+            }
+        }
+    };
+
+    private Set<NetAddress> getNodes()
+    {
+        HashSet<NetAddress> nodeSet = new HashSet<>();
+
+        GlobalView gv = config().getValue("simulation.globalview", GlobalView.class);
+        for (Address address : gv.getAliveNodes().values())
+        {
+            NetAddress netAddress = new NetAddress(address.getIp(), address.getPort());
+
+            if (netAddress.equals(observerAddress))
+                continue;
+
+            nodeSet.add(netAddress);
+        }
+
+        return nodeSet;
     }
 }

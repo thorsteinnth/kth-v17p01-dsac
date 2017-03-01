@@ -49,7 +49,7 @@ public class EPFDTest {
 
             // Then we check that each correct process suspects the two crashed processes
             List<String> suspected = res.get(process, new ArrayList<String>().getClass());
-            LOG.debug("EPFD Test: " + process + " suspects " + suspected.toString());
+            LOG.debug("EPFD CompletenessTest: " + process + " suspects " + suspected.toString());
             Assert.assertEquals(2, suspected.size());
         }
 

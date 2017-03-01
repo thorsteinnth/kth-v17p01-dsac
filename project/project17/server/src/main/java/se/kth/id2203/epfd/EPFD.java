@@ -91,8 +91,6 @@ public class EPFD extends ComponentDefinition{
                 }
             }
 
-
-
             seqNum = seqNum + 1;
 
             for (NetAddress process : topology) {

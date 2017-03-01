@@ -89,40 +89,49 @@ public abstract class ScenarioGen {
         }
     };
 
-    static Operation startObserverOp = new Operation<StartNodeEvent>() {
+    static Operation startObserver = new Operation<StartNodeEvent>()
+    {
         @Override
-        public StartNodeEvent generate() {
+        public StartNodeEvent generate()
+        {
             return new StartNodeEvent() {
                 NetAddress selfAdr;
 
                 {
-                    try {
+                    try
+                    {
                         selfAdr = new NetAddress(InetAddress.getByName("0.0.0.0"), 0);
-                    } catch (UnknownHostException ex) {
+                    }
+                    catch (UnknownHostException ex)
+                    {
                         throw new RuntimeException(ex);
                     }
                 }
 
                 @Override
-                public Map<String, Object> initConfigUpdate() {
-                    HashMap<String, Object> config = new HashMap<>();
-                    config.put("epfd.simulation.checktimeout", 5000);
-                    return config;
-                }
-
-                @Override
-                public Address getNodeAddress() {
+                public Address getNodeAddress()
+                {
                     return selfAdr;
                 }
 
                 @Override
-                public Class getComponentDefinition() {
-                    return SimulationObserver.class;
+                public Class getComponentDefinition()
+                {
+                    return SimulationObserverParent.class;
                 }
 
                 @Override
-                public Init getComponentInit() {
-                    return new SimulationObserver.Init(1);
+                public Init getComponentInit()
+                {
+                    return Init.NONE;
+                }
+
+                @Override
+                public Map<String, Object> initConfigUpdate()
+                {
+                    HashMap<String, Object> config = new HashMap<>();
+                    config.put("id2203.project.address", selfAdr);
+                    return config;
                 }
             };
         }
@@ -167,7 +176,7 @@ public abstract class ScenarioGen {
 
                 SimulationScenario.StochasticProcess observer = new SimulationScenario.StochasticProcess() {
                     {
-                        raise(1, startObserverOp);
+                        raise(1, startObserver);
                     }
                 };
 
@@ -179,7 +188,7 @@ public abstract class ScenarioGen {
                 };
 
                 startClients.start();
-                //observer.startAfterTerminationOf(0, startClients);
+                observer.startAfterTerminationOf(0, startClients);
                 killClients.startAfterTerminationOf(2000, startClients);
                 terminateAfterTerminationOf(10*100000, startClients);
             }
@@ -191,18 +200,19 @@ public abstract class ScenarioGen {
             {
                 StochasticProcess startClients = new StochasticProcess() {
                     {
-                        eventInterArrivalTime(constant(1000));
+                        eventInterArrivalTime(constant(0));
                         raise(clients, startClient, new BasicIntSequentialDistribution(1));
                     }
                 };
 
                 SimulationScenario.StochasticProcess observer = new SimulationScenario.StochasticProcess() {
                     {
-                        raise(1, startObserverOp);
+                        raise(1, startObserver);
                     }
                 };
 
                 startClients.start();
+                observer.startAfterTerminationOf(0, startClients);
                 terminateAfterTerminationOf(10*100000, startClients);
             }
         };
