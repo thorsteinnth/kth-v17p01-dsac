@@ -46,9 +46,9 @@ import se.sics.kompics.network.Network;
 import java.util.HashMap;
 import java.util.UUID;
 
-public class KVService extends ComponentDefinition {
-
-    // TODO Use MultiPaxos and RSM operation sequence instead of NNAR
+public class KVService extends ComponentDefinition
+{
+    // TODO Remove NNAR code when paxos is up and running.
 
     private final static Logger LOG = LoggerFactory.getLogger(KVService.class);
 
@@ -61,6 +61,7 @@ public class KVService extends ComponentDefinition {
 
     // Fields
     final NetAddress self = config().getValue("id2203.project.address", NetAddress.class);
+    private HashMap<String, String> datastore;
     /**
      * Pending operations that are being processed by atomic register.
      * */
@@ -75,9 +76,12 @@ public class KVService extends ComponentDefinition {
         {
             LOG.info("Got operation {}", operation);
 
-            // Send a read request to NNAR
             pendingOperations.put(operation.id, message.getSource());
-            trigger(new ARReadRequest(operation), nnar);
+
+            // Send a read request to NNAR
+            //trigger(new ARReadRequest(operation), nnar);
+
+            trigger(new Propose(operation), mpaxos);
         }
     };
 
@@ -88,11 +92,11 @@ public class KVService extends ComponentDefinition {
         {
             LOG.info("Got operation {}", operation);
 
-            // Send write request to NNAR
             pendingOperations.put(operation.id, message.getSource());
-            trigger(new ARWriteRequest(operation), nnar);
 
-            // Send write request to mpaxos
+            // Send write request to NNAR
+            //trigger(new ARWriteRequest(operation), nnar);
+
             trigger(new Propose(operation), mpaxos);
         }
     };
@@ -116,6 +120,9 @@ public class KVService extends ComponentDefinition {
             LOG.info("Received BEB broadcast - Source: " + bebDeliver.source + " - Payload: " + bebDeliver.payload);
         }
     };
+
+    //region NNAR handlers
+    /*
 
     protected final Handler<ARReadResponse> arReadResponseHandler = new Handler<ARReadResponse>()
     {
@@ -162,6 +169,9 @@ public class KVService extends ComponentDefinition {
         }
     };
 
+    */
+    //endregion
+
     //region Paxos handlers
 
     private final Handler<DecideResult> decideResultHandler = new Handler<DecideResult>()
@@ -170,6 +180,67 @@ public class KVService extends ComponentDefinition {
         public void handle(DecideResult decideResult)
         {
             LOG.info(self + " - Got decide result from mpaxos: " + decideResult);
+
+            // TODO The result object should be Operation, not just object
+            // TODO We are getting an empty array as a decide result from paxos,
+            // TODO before getting the correct result. Bug in paxos. Figure it out.
+
+            if (decideResult.object instanceof Operation)
+            {
+                if (decideResult.object instanceof PutOperation)
+                {
+                    // Perform operation
+                    PutOperation operation = (PutOperation)decideResult.object;
+                    String oldValue = datastore.put(operation.key, operation.value);
+                    printDataStore();
+
+                    // Send response to client, if we have have this operation in our pending list.
+                    // Note that only the server that got the request from the client has it in its pending list
+                    // and should respond to the client. Other servers do not communicate with the client.
+                    NetAddress clientAddress = pendingOperations.get(operation.id);
+
+                    if (clientAddress == null)
+                        return;
+
+                    trigger(new Message(self, clientAddress, new OpResponse(operation.id, Code.OK, oldValue)), net);
+
+                    // Remove operation from pending operations
+                    LOG.debug(self + " - Removing operation from pending: " + operation);
+                    pendingOperations.remove(operation.id);
+                }
+                else if (decideResult.object instanceof GetOperation)
+                {
+                    // Perform operation
+                    GetOperation operation = (GetOperation)decideResult.object;
+                    String value = datastore.get(operation.key);
+                    printDataStore();
+
+                    // Send response to client, if we have have this operation in our pending list.
+                    // Note that only the server that got the request from the client has it in its pending list
+                    // and should respond to the client. Other servers do not communicate with the client.
+                    NetAddress clientAddress = pendingOperations.get(operation.id);
+
+                    if (clientAddress == null)
+                        return;
+
+                    if (value == null)
+                        trigger(new Message(self, clientAddress, new OpResponse(operation.id, Code.NOT_FOUND, "")), net);
+                    else
+                        trigger(new Message(self, clientAddress, new OpResponse(operation.id, Code.OK, value)), net);
+
+                    // Remove operation from pending operations
+                    LOG.debug(self + " - Removing operation from pending: " + operation);
+                    pendingOperations.remove(operation.id);
+                }
+                else
+                {
+                    LOG.error(self + " - Unexpected decide result object type: " + decideResult.object.getClass());
+                }
+            }
+            else
+            {
+                LOG.error(self + " - Unexpected decide result object type: " + decideResult.object.getClass());
+            }
         }
     };
 
@@ -178,6 +249,10 @@ public class KVService extends ComponentDefinition {
         @Override
         public void handle(Abort abort)
         {
+            // TODO How can we find what client we are aborting here? Need to return the op with the abort message.
+            // Or we could just allow one operation at a time into paxos from this server. Queue other incoming
+            // messages and just send them to paxos when we get a response for the previous operation.
+            // Then we always know what operation was aborted.
             LOG.info(self + " - Got abort from mpaxos: " + abort);
         }
     };
@@ -186,15 +261,30 @@ public class KVService extends ComponentDefinition {
 
     //endregion
 
+    private void printDataStore()
+    {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Datastore - size: " + datastore.size() + " \n");
+
+        for (String key : datastore.keySet())
+        {
+            String value = datastore.get(key);
+            sb.append("[" + key + " - " + value + "]");
+        }
+
+        LOG.debug(self.toString() + " - " + sb.toString());
+    }
+
     {
         subscribe(getOpHandler, net);
         subscribe(putOpHandler, net);
         subscribe(casOpHandler, net);
         subscribe(incomingBroadcastHandler, beb);
-        subscribe(arReadResponseHandler, nnar);
-        subscribe(arWriteResponseHandler, nnar);
+        //subscribe(arReadResponseHandler, nnar);
+        //subscribe(arWriteResponseHandler, nnar);
         subscribe(decideResultHandler, mpaxos);
         subscribe(abortHandler, mpaxos);
+        this.datastore = new HashMap<>();
         this.pendingOperations = new HashMap<>();
     }
 }

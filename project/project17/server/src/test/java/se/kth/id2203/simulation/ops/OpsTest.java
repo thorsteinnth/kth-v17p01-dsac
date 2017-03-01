@@ -39,6 +39,15 @@ public class OpsTest {
     private static final int NUM_MESSAGES = 10;
     private final SimulationResultMap res = SimulationResultSingleton.getInstance();
 
+    // TODO Create tests for mpaxos
+    // The tests should probably check that for every operation we send to paxos, the operation is either put into
+    // the sequence (returned from paxos) or aborted (i.e. get abort message from paxos).
+    // All operations that we get from paxos should be in the same order on all processes, i.e. the decided sequence
+    // should be the same for all processes (so we get atomic multicast functionality).
+    // Abort messages are a valid result I think, they just mean that they couldn't reach a consensus.
+    // The application should then just decide how it wants to handle the abort messages (try again, abort the op ...)
+
+    /*
     @Test
     public void simpleOpsTest()
     {
@@ -89,4 +98,5 @@ public class OpsTest {
             Assert.assertEquals("OK", res.get("PUT-" + Integer.toString(i), String.class));
         }
     }
+    */
 }
