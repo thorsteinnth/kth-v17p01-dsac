@@ -35,16 +35,13 @@ import se.kth.id2203.multipaxos.Propose;
 import se.kth.id2203.networking.Message;
 import se.kth.id2203.networking.NetAddress;
 import se.kth.id2203.nnar.AtomicRegisterPort;
-import se.kth.id2203.nnar.event.ARReadRequest;
-import se.kth.id2203.nnar.event.ARReadResponse;
-import se.kth.id2203.nnar.event.ARWriteRequest;
-import se.kth.id2203.nnar.event.ARWriteResponse;
 import se.kth.id2203.overlay.Routing;
 import se.sics.kompics.*;
 import se.sics.kompics.network.Network;
 
 import java.util.HashMap;
-import java.util.UUID;
+import java.util.LinkedList;
+import java.util.Queue;
 
 public class KVService extends ComponentDefinition
 {
@@ -65,7 +62,10 @@ public class KVService extends ComponentDefinition
     /**
      * Pending operations that are being processed by atomic register.
      * */
-    private HashMap<UUID, NetAddress> pendingOperations;
+    // We are storing the pending operations in a queue. Only one operation at a time active in mpaxos
+    // Doing it this way so we know what operation is aborted, instead of changing the paxos algorithm
+    // to carry the operation ID with the abort message.
+    private Queue<PendingOperation> pendingOperations;
 
     //region Handlers
 
@@ -75,13 +75,7 @@ public class KVService extends ComponentDefinition
         public void handle(GetOperation operation, Message message)
         {
             LOG.info("Got operation {}", operation);
-
-            pendingOperations.put(operation.id, message.getSource());
-
-            // Send a read request to NNAR
-            //trigger(new ARReadRequest(operation), nnar);
-
-            trigger(new Propose(operation), mpaxos);
+            addPendingOperationAndSendIfFirst(operation, message.getSource());
         }
     };
 
@@ -91,13 +85,7 @@ public class KVService extends ComponentDefinition
         public void handle(PutOperation operation, Message message)
         {
             LOG.info("Got operation {}", operation);
-
-            pendingOperations.put(operation.id, message.getSource());
-
-            // Send write request to NNAR
-            //trigger(new ARWriteRequest(operation), nnar);
-
-            trigger(new Propose(operation), mpaxos);
+            addPendingOperationAndSendIfFirst(operation, message.getSource());
         }
     };
 
@@ -107,10 +95,7 @@ public class KVService extends ComponentDefinition
         public void handle(CASOperation operation, Message message)
         {
             LOG.info("Got operation {}", operation);
-
-            pendingOperations.put(operation.id, message.getSource());
-
-            trigger(new Propose(operation), mpaxos);
+            addPendingOperationAndSendIfFirst(operation, message.getSource());
         }
     };
 
@@ -196,19 +181,17 @@ public class KVService extends ComponentDefinition
                     String oldValue = datastore.put(operation.key, operation.value);
                     printDataStore();
 
-                    // Send response to client, if we have have this operation in our pending list.
-                    // Note that only the server that got the request from the client has it in its pending list
+                    // Send response to client, if we have have this operation in our pending queue.
+                    // Note that only the server that got the request from the client has it in its pending queue
                     // and should respond to the client. Other servers do not communicate with the client.
-                    NetAddress clientAddress = pendingOperations.get(operation.id);
-
-                    if (clientAddress == null)
-                        return;
-
-                    trigger(new Message(self, clientAddress, new OpResponse(operation.id, Code.OK, oldValue)), net);
-
-                    // Remove operation from pending operations
-                    LOG.debug(self + " - Removing operation from pending: " + operation);
-                    pendingOperations.remove(operation.id);
+                    PendingOperation headPendingOperation = pendingOperations.peek();
+                    if (headPendingOperation != null && headPendingOperation.operation.equals(operation))
+                    {
+                        // I am the server that is responsible for this operation.
+                        // Should notify client.
+                        trigger(new Message(self, headPendingOperation.clientAddress, new OpResponse(operation.id, Code.OK, oldValue)), net);
+                        removePendingOperationAndSendNextOp();
+                    }
                 }
                 else if (decideResult.object instanceof GetOperation)
                 {
@@ -217,22 +200,21 @@ public class KVService extends ComponentDefinition
                     String value = datastore.get(operation.key);
                     printDataStore();
 
-                    // Send response to client, if we have have this operation in our pending list.
-                    // Note that only the server that got the request from the client has it in its pending list
+                    // Send response to client, if we have have this operation in our pending queue.
+                    // Note that only the server that got the request from the client has it in its pending queue
                     // and should respond to the client. Other servers do not communicate with the client.
-                    NetAddress clientAddress = pendingOperations.get(operation.id);
+                    PendingOperation headPendingOperation = pendingOperations.peek();
+                    if (headPendingOperation != null && headPendingOperation.operation.equals(operation))
+                    {
+                        // I am the server that is responsible for this operation.
+                        // Should notify client.
+                        if (value == null)
+                            trigger(new Message(self, headPendingOperation.clientAddress, new OpResponse(operation.id, Code.NOT_FOUND, "")), net);
+                        else
+                            trigger(new Message(self, headPendingOperation.clientAddress, new OpResponse(operation.id, Code.OK, value)), net);
 
-                    if (clientAddress == null)
-                        return;
-
-                    if (value == null)
-                        trigger(new Message(self, clientAddress, new OpResponse(operation.id, Code.NOT_FOUND, "")), net);
-                    else
-                        trigger(new Message(self, clientAddress, new OpResponse(operation.id, Code.OK, value)), net);
-
-                    // Remove operation from pending operations
-                    LOG.debug(self + " - Removing operation from pending: " + operation);
-                    pendingOperations.remove(operation.id);
+                        removePendingOperationAndSendNextOp();
+                    }
                 }
                 else if (decideResult.object instanceof CASOperation)
                 {
@@ -247,38 +229,36 @@ public class KVService extends ComponentDefinition
                     {
                         success = true;
                         oldValue = datastore.put(operation.key, operation.newValue);
+                        printDataStore();
                     }
 
-                    // Send response to client, if we have have this operation in our pending list.
-                    // Note that only the server that got the request from the client has it in its pending list
+                    // Send response to client, if we have have this operation in our pending queue.
+                    // Note that only the server that got the request from the client has it in its pending queue
                     // and should respond to the client. Other servers do not communicate with the client.
-                    NetAddress clientAddress = pendingOperations.get(operation.id);
-
-                    if (clientAddress == null)
-                        return;
-
-                    if (success)
+                    PendingOperation headPendingOperation = pendingOperations.peek();
+                    if (headPendingOperation != null && headPendingOperation.operation.equals(operation))
                     {
-                        OpResponse opResponse = new OpResponse(
-                                operation.id,
-                                Code.OK,
-                                "Old val: " + oldValue + ", new val: " + operation.newValue
-                        );
-                        trigger(new Message(self, clientAddress, opResponse), net);
-                    }
-                    else
-                    {
-                        OpResponse opResponse = new OpResponse(
-                                operation.id,
-                                Code.NOT_SAME_VALUE,
-                                "Current val: " + currentValue
-                        );
-                        trigger(new Message(self, clientAddress, opResponse), net);
-                    }
+                        if (success)
+                        {
+                            OpResponse opResponse = new OpResponse(
+                                    operation.id,
+                                    Code.OK,
+                                    "Old val: " + oldValue + ", new val: " + operation.newValue
+                            );
+                            trigger(new Message(self, headPendingOperation.clientAddress, opResponse), net);
+                        }
+                        else
+                        {
+                            OpResponse opResponse = new OpResponse(
+                                    operation.id,
+                                    Code.NOT_SAME_VALUE,
+                                    "Current val: " + currentValue
+                            );
+                            trigger(new Message(self, headPendingOperation.clientAddress, opResponse), net);
+                        }
 
-                    // Remove operation from pending operations
-                    LOG.debug(self + " - Removing operation from pending: " + operation);
-                    pendingOperations.remove(operation.id);
+                        removePendingOperationAndSendNextOp();
+                    }
                 }
                 else
                 {
@@ -297,17 +277,59 @@ public class KVService extends ComponentDefinition
         @Override
         public void handle(Abort abort)
         {
-            // TODO How can we find what client we are aborting here? Need to return the op with the abort message.
-            // Or we could just allow one operation at a time into paxos from this server. Queue other incoming
-            // messages and just send them to paxos when we get a response for the previous operation.
-            // Then we always know what operation was aborted.
             LOG.info(self + " - Got abort from mpaxos: " + abort);
+
+            // Since we have a pending operation queue we know that the first operation in the queue is the one
+            // that we were trying to perform, and the abort is meant for that operation.
+            // Notify client, remove operation from queue and try the next one.
+
+            PendingOperation headPendingOperation = pendingOperations.peek();
+
+            if (headPendingOperation != null)
+            {
+                OpResponse opResponse = new OpResponse(
+                        headPendingOperation.operation.id,
+                        Code.ABORT,
+                        null
+                );
+                trigger(new Message(self, headPendingOperation.clientAddress, opResponse), net);
+            }
+
+            removePendingOperationAndSendNextOp();
         }
     };
 
     //endregion
 
     //endregion
+
+    /**
+     * Add a new operation to pending operation queue.
+     * If the queue was not empty, and this operation is the only operation in the queue, send it to mpaxos.
+     */
+    private void addPendingOperationAndSendIfFirst(Operation operation, NetAddress clientAddress)
+    {
+        pendingOperations.add(new PendingOperation(clientAddress, operation));
+
+        if (pendingOperations.size() == 1)
+            trigger(new Propose(operation), mpaxos);
+    }
+
+    /**
+     * Remove operation from the pending operation queue.
+     * If the queue is not empty after removing the operation, send the next operation to mpaxos.
+     */
+    private void removePendingOperationAndSendNextOp()
+    {
+        PendingOperation removedOperation = pendingOperations.remove();
+        LOG.debug(self + " - Removed operation from pending: " + removedOperation);
+
+        PendingOperation nextPendingOperation = pendingOperations.peek();
+        if (nextPendingOperation != null)
+        {
+            trigger(new Propose(nextPendingOperation.operation), mpaxos);
+        }
+    }
 
     private void printDataStore()
     {
@@ -333,6 +355,48 @@ public class KVService extends ComponentDefinition
         subscribe(decideResultHandler, mpaxos);
         subscribe(abortHandler, mpaxos);
         this.datastore = new HashMap<>();
-        this.pendingOperations = new HashMap<>();
+        this.pendingOperations = new LinkedList<>();
+    }
+
+    private class PendingOperation
+    {
+        public NetAddress clientAddress;
+        public Operation operation;
+
+        public PendingOperation(NetAddress clientAddress, Operation operation)
+        {
+            this.clientAddress = clientAddress;
+            this.operation = operation;
+        }
+
+        @Override
+        public boolean equals(Object o)
+        {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            PendingOperation that = (PendingOperation) o;
+
+            if (clientAddress != null ? !clientAddress.equals(that.clientAddress) : that.clientAddress != null)
+                return false;
+            return operation != null ? operation.equals(that.operation) : that.operation == null;
+        }
+
+        @Override
+        public int hashCode()
+        {
+            int result = clientAddress != null ? clientAddress.hashCode() : 0;
+            result = 31 * result + (operation != null ? operation.hashCode() : 0);
+            return result;
+        }
+
+        @Override
+        public String toString()
+        {
+            return "PendingOperation{" +
+                    "clientAddress=" + clientAddress +
+                    ", operation=" + operation +
+                    '}';
+        }
     }
 }
