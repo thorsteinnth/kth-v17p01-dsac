@@ -168,106 +168,98 @@ public class KVService extends ComponentDefinition
         {
             LOG.info(self + " - Got decide result from mpaxos: " + decideResult);
 
-            // TODO The result object should be Operation, not just object
             // TODO We are getting an empty array as a decide result from paxos,
             // TODO before getting the correct result. Bug in paxos. Figure it out.
 
-            if (decideResult.object instanceof Operation)
+            if (decideResult.operation instanceof PutOperation)
             {
-                if (decideResult.object instanceof PutOperation)
+                // Perform operation
+                PutOperation operation = (PutOperation)decideResult.operation;
+                String oldValue = datastore.put(operation.key, operation.value);
+                printDataStore();
+
+                // Send response to client, if we have have this operation in our pending queue.
+                // Note that only the server that got the request from the client has it in its pending queue
+                // and should respond to the client. Other servers do not communicate with the client.
+                PendingOperation headPendingOperation = pendingOperations.peek();
+                if (headPendingOperation != null && headPendingOperation.operation.equals(operation))
                 {
-                    // Perform operation
-                    PutOperation operation = (PutOperation)decideResult.object;
-                    String oldValue = datastore.put(operation.key, operation.value);
+                    // I am the server that is responsible for this operation.
+                    // Should notify client.
+                    trigger(new Message(self, headPendingOperation.clientAddress, new OpResponse(operation.id, Code.OK, oldValue)), net);
+                    removePendingOperationAndSendNextOp();
+                }
+            }
+            else if (decideResult.operation instanceof GetOperation)
+            {
+                // Perform operation
+                GetOperation operation = (GetOperation)decideResult.operation;
+                String value = datastore.get(operation.key);
+                printDataStore();
+
+                // Send response to client, if we have have this operation in our pending queue.
+                // Note that only the server that got the request from the client has it in its pending queue
+                // and should respond to the client. Other servers do not communicate with the client.
+                PendingOperation headPendingOperation = pendingOperations.peek();
+                if (headPendingOperation != null && headPendingOperation.operation.equals(operation))
+                {
+                    // I am the server that is responsible for this operation.
+                    // Should notify client.
+                    if (value == null)
+                        trigger(new Message(self, headPendingOperation.clientAddress, new OpResponse(operation.id, Code.NOT_FOUND, "")), net);
+                    else
+                        trigger(new Message(self, headPendingOperation.clientAddress, new OpResponse(operation.id, Code.OK, value)), net);
+
+                    removePendingOperationAndSendNextOp();
+                }
+            }
+            else if (decideResult.operation instanceof CASOperation)
+            {
+                // Perform operation
+                CASOperation operation = (CASOperation)decideResult.operation;
+                String currentValue = datastore.get(operation.key);
+
+                boolean success = false;
+                String oldValue = "";
+
+                if (currentValue.equals(operation.referenceValue))
+                {
+                    success = true;
+                    oldValue = datastore.put(operation.key, operation.newValue);
                     printDataStore();
-
-                    // Send response to client, if we have have this operation in our pending queue.
-                    // Note that only the server that got the request from the client has it in its pending queue
-                    // and should respond to the client. Other servers do not communicate with the client.
-                    PendingOperation headPendingOperation = pendingOperations.peek();
-                    if (headPendingOperation != null && headPendingOperation.operation.equals(operation))
-                    {
-                        // I am the server that is responsible for this operation.
-                        // Should notify client.
-                        trigger(new Message(self, headPendingOperation.clientAddress, new OpResponse(operation.id, Code.OK, oldValue)), net);
-                        removePendingOperationAndSendNextOp();
-                    }
                 }
-                else if (decideResult.object instanceof GetOperation)
+
+                // Send response to client, if we have have this operation in our pending queue.
+                // Note that only the server that got the request from the client has it in its pending queue
+                // and should respond to the client. Other servers do not communicate with the client.
+                PendingOperation headPendingOperation = pendingOperations.peek();
+                if (headPendingOperation != null && headPendingOperation.operation.equals(operation))
                 {
-                    // Perform operation
-                    GetOperation operation = (GetOperation)decideResult.object;
-                    String value = datastore.get(operation.key);
-                    printDataStore();
-
-                    // Send response to client, if we have have this operation in our pending queue.
-                    // Note that only the server that got the request from the client has it in its pending queue
-                    // and should respond to the client. Other servers do not communicate with the client.
-                    PendingOperation headPendingOperation = pendingOperations.peek();
-                    if (headPendingOperation != null && headPendingOperation.operation.equals(operation))
+                    if (success)
                     {
-                        // I am the server that is responsible for this operation.
-                        // Should notify client.
-                        if (value == null)
-                            trigger(new Message(self, headPendingOperation.clientAddress, new OpResponse(operation.id, Code.NOT_FOUND, "")), net);
-                        else
-                            trigger(new Message(self, headPendingOperation.clientAddress, new OpResponse(operation.id, Code.OK, value)), net);
-
-                        removePendingOperationAndSendNextOp();
+                        OpResponse opResponse = new OpResponse(
+                                operation.id,
+                                Code.OK,
+                                "Old val: " + oldValue + ", new val: " + operation.newValue
+                        );
+                        trigger(new Message(self, headPendingOperation.clientAddress, opResponse), net);
                     }
-                }
-                else if (decideResult.object instanceof CASOperation)
-                {
-                    // Perform operation
-                    CASOperation operation = (CASOperation)decideResult.object;
-                    String currentValue = datastore.get(operation.key);
-
-                    boolean success = false;
-                    String oldValue = "";
-
-                    if (currentValue.equals(operation.referenceValue))
+                    else
                     {
-                        success = true;
-                        oldValue = datastore.put(operation.key, operation.newValue);
-                        printDataStore();
+                        OpResponse opResponse = new OpResponse(
+                                operation.id,
+                                Code.NOT_SAME_VALUE,
+                                "Current val: " + currentValue
+                        );
+                        trigger(new Message(self, headPendingOperation.clientAddress, opResponse), net);
                     }
 
-                    // Send response to client, if we have have this operation in our pending queue.
-                    // Note that only the server that got the request from the client has it in its pending queue
-                    // and should respond to the client. Other servers do not communicate with the client.
-                    PendingOperation headPendingOperation = pendingOperations.peek();
-                    if (headPendingOperation != null && headPendingOperation.operation.equals(operation))
-                    {
-                        if (success)
-                        {
-                            OpResponse opResponse = new OpResponse(
-                                    operation.id,
-                                    Code.OK,
-                                    "Old val: " + oldValue + ", new val: " + operation.newValue
-                            );
-                            trigger(new Message(self, headPendingOperation.clientAddress, opResponse), net);
-                        }
-                        else
-                        {
-                            OpResponse opResponse = new OpResponse(
-                                    operation.id,
-                                    Code.NOT_SAME_VALUE,
-                                    "Current val: " + currentValue
-                            );
-                            trigger(new Message(self, headPendingOperation.clientAddress, opResponse), net);
-                        }
-
-                        removePendingOperationAndSendNextOp();
-                    }
-                }
-                else
-                {
-                    LOG.error(self + " - Unexpected decide result object type: " + decideResult.object.getClass());
+                    removePendingOperationAndSendNextOp();
                 }
             }
             else
             {
-                LOG.error(self + " - Unexpected decide result object type: " + decideResult.object.getClass());
+                LOG.error(self + " - Unexpected decide result operation type: " + decideResult.operation.getClass());
             }
         }
     };

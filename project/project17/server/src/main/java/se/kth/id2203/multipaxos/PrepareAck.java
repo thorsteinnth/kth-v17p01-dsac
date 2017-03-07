@@ -1,5 +1,6 @@
 package se.kth.id2203.multipaxos;
 
+import se.kth.id2203.kvstore.Operation;
 import se.sics.kompics.KompicsEvent;
 
 import java.io.Serializable;
@@ -20,7 +21,7 @@ public class PrepareAck implements KompicsEvent, Serializable
     /**
      * Value sequence suffix (suffix(av,l))
      */
-    public List<Object> vsuf;
+    public List<Operation> vsuf;
 
     /**
      * Length of decided sequence (acceptor)
@@ -32,7 +33,7 @@ public class PrepareAck implements KompicsEvent, Serializable
      */
     public int t_prime;
 
-    public PrepareAck(int pts_prime, int ts, List<Object> vsuf, int l, int t_prime)
+    public PrepareAck(int pts_prime, int ts, List<Operation> vsuf, int l, int t_prime)
     {
         this.pts_prime = pts_prime;
         this.ts = ts;
