@@ -29,6 +29,7 @@ import se.kth.id2203.simulation.SimulationResultMap;
 import se.kth.id2203.simulation.SimulationResultSingleton;
 import se.sics.kompics.simulator.SimulationScenario;
 import se.sics.kompics.simulator.run.LauncherComp;
+import sun.rmi.runtime.Log;
 
 /**
  *
@@ -46,6 +47,21 @@ public class OpsTest {
     // should be the same for all processes (so we get atomic multicast functionality).
     // Abort messages are a valid result I think, they just mean that they couldn't reach a consensus.
     // The application should then just decide how it wants to handle the abort messages (try again, abort the op ...)
+
+    @Test
+    public void opsTest()
+    {
+        res.clear();
+
+        long seed = 123;
+        SimulationScenario.setSeed(seed);
+        SimulationScenario opsSequenceScenario = ScenarioGen.ops(9);
+        opsSequenceScenario.simulate(LauncherComp.class);
+
+        // TODO : just testing this out
+        Assert.assertTrue(res.get("PUT-2", String.class).equals("OK") ||
+                            res.get("PUT-2", String.class).equals("ABORT"));
+    }
 
     /*
     @Test
