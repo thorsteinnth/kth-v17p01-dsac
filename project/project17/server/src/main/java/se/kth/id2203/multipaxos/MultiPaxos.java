@@ -10,6 +10,7 @@ import se.sics.kompics.*;
 import se.sics.kompics.network.Network;
 
 import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Implementation of Multi Paxos. Abortable sequence consensus.
@@ -101,6 +102,11 @@ public class MultiPaxos extends ComponentDefinition
      * */
     private Map<NetAddress, Integer> decided;
 
+    /**
+     * self rank
+     */
+    private int selfRank;
+
     // endregion
 
     //region Handlers
@@ -124,6 +130,7 @@ public class MultiPaxos extends ComponentDefinition
             readlist = new HashMap<>();
             accepted = new HashMap<>();
             decided = new HashMap<>();
+            selfRank = ThreadLocalRandom.current().nextInt(100000000);
         }
     };
 
@@ -567,7 +574,7 @@ public class MultiPaxos extends ComponentDefinition
 
     private int getSelfRank()
     {
-        return self.hashCode();
+        return selfRank;
     }
 
     //endregion

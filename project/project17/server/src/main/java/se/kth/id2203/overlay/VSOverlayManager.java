@@ -33,6 +33,9 @@ import se.kth.id2203.bootstrapping.*;
 import se.kth.id2203.broadcast.beb.BestEffortBroadcastPort;
 import se.kth.id2203.broadcast.rb.ReliableBroadcastPort;
 import se.kth.id2203.epfd.EPFDPort;
+import se.kth.id2203.epfd.event.Restore;
+import se.kth.id2203.epfd.event.Suspect;
+import se.kth.id2203.epfd.event.SystemStable;
 import se.kth.id2203.multipaxos.MultiPaxosPort;
 import se.kth.id2203.networking.Message;
 import se.kth.id2203.networking.NetAddress;
@@ -119,6 +122,8 @@ public class VSOverlayManager extends ComponentDefinition
         {
             Collection<NetAddress> partition = lut.lookup(content.key);
             NetAddress target = J6.randomElement(partition);
+            // Always selecting the first node would make the Multi Paxos algorithm more efficient
+            //NetAddress target = partition.iterator().next();
             LOG.info("Forwarding message for key {} to {}", content.key, target);
             trigger(new Message(context.getSource(), target, content.msg), net);
         }
@@ -132,6 +137,8 @@ public class VSOverlayManager extends ComponentDefinition
         {
             Collection<NetAddress> partition = lut.lookup(event.key);
             NetAddress target = J6.randomElement(partition);
+            // Always selecting the first node would make the Multi Paxos algorithm more efficient
+            //NetAddress target = partition.iterator().next();
             LOG.info("Routing message for key {} to {}", event.key, target);
             trigger(new Message(self, target, event.msg), net);
         }
@@ -152,6 +159,27 @@ public class VSOverlayManager extends ComponentDefinition
             {
                 LOG.info("Rejecting connection request from {}, as system is not ready, yet.", context.getSource());
             }
+        }
+    };
+
+    // EPFD handlers
+    protected final Handler<Suspect> suspectHandler = new Handler<Suspect>() {
+
+        @Override
+        public void handle(Suspect suspect) {
+            LOG.debug("VSOverlay Manager: got a suspected process: " + suspect.getAddress());
+
+            // TODO : Send updated topology to MPaxos
+        }
+    };
+
+    protected final Handler<Restore> restoreHandler = new Handler<Restore>() {
+
+        @Override
+        public void handle(Restore restore) {
+            LOG.debug("VSOverlay Manager: got a restored process: " + restore.getAddress());
+
+            // TODO : Send updated topology to MPaxos
         }
     };
 
@@ -189,5 +217,7 @@ public class VSOverlayManager extends ComponentDefinition
         subscribe(routeHandler, net);
         subscribe(localRouteHandler, route);
         subscribe(connectHandler, net);
+        subscribe(suspectHandler, epfd);
+        subscribe(restoreHandler, epfd);
     }
 }
