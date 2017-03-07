@@ -441,7 +441,7 @@ public class MultiPaxos extends ComponentDefinition
 
         if (l < v.size())
         {
-            for (int i = l-1; i < v.size(); i++)
+            for (int i = l; i < v.size(); i++)
                 suffix.add(v.get(i));
         }
 
