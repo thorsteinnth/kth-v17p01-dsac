@@ -2,6 +2,7 @@ package se.kth.id2203.multipaxos;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import se.kth.id2203.kvstore.Operation;
 import se.kth.id2203.networking.Message;
 import se.kth.id2203.networking.NetAddress;
 import se.kth.id2203.overlay.Topology;
@@ -16,8 +17,6 @@ import java.util.*;
  * */
 public class MultiPaxos extends ComponentDefinition
 {
-    // TODO Make paxos work with Operation objects instead of just Objects?
-
     //region Ports
 
     private final Positive<Network> net = requires(Network.class);
@@ -60,7 +59,7 @@ public class MultiPaxos extends ComponentDefinition
     /**
      * Acceptor: Accepted sequence
      * */
-    private List<Object> av;
+    private List<Operation> av;
 
     /**
      * Acceptor: Length of decided sequence
@@ -75,7 +74,7 @@ public class MultiPaxos extends ComponentDefinition
     /**
      * Proposer: Proposed sequence
      * */
-    private List<Object> pv;
+    private List<Operation> pv;
 
     /**
      * Proposer: Length of learned sequence
@@ -85,7 +84,7 @@ public class MultiPaxos extends ComponentDefinition
     /**
      * Proposer: Values proposed while preparing
      * */
-    private List<Object> proposedValues;
+    private List<Operation> proposedValues;
 
     /**
      *
@@ -157,6 +156,7 @@ public class MultiPaxos extends ComponentDefinition
                 proposedValues.clear();
                 proposedValues.add(propose.value);
 
+                // TODO New the readlist instead? Don't think that matters.
                 for (NetAddress key : readlist.keySet())
                     readlist.put(key, null);
 
@@ -185,7 +185,7 @@ public class MultiPaxos extends ComponentDefinition
                 {
                     if (readlist.get(processAddress) != null)
                     {
-                        List<Object> valueSeq = new ArrayList<>();
+                        List<Operation> valueSeq = new ArrayList<>();
                         valueSeq.add(propose.value);
                         Accept accept = new Accept(pts, valueSeq, pv.size()-1, t);
                         trigger(new Message(self, processAddress, accept), net);
@@ -256,22 +256,23 @@ public class MultiPaxos extends ComponentDefinition
 
                 // Find the readlist entry with highest TS, and if two TS are equal,
                 // with longest value suffix
-                if (readlist.keySet().size() == (Math.floor(getN()/2) + 1))
+                // TODO Non null values in readlist or clear readlist?
+                if (nonNullReadlistValueSize() == (Math.floor(getN()/2) + 1))
                 {
-                    ReadlistEntry highestEntry = new ReadlistEntry(0, new ArrayList<>());
+                    ReadlistEntry highestEntry = new ReadlistEntry(0, new ArrayList<Operation>());
 
                     for (ReadlistEntry entry : readlist.values())
                     {
-                        if(highestEntry.lessThan(entry))
+                        if (entry != null && highestEntry.lessThan(entry))
                         {
                             highestEntry.ts = entry.ts;
                             highestEntry.vsuf = entry.vsuf;
                         }
                     }
 
-                    pv.add(highestEntry.vsuf);
+                    pv.addAll(highestEntry.vsuf);
 
-                    for (Object value : proposedValues)
+                    for (Operation value : proposedValues)
                     {
                         if (!pv.contains(value))
                         {
@@ -292,7 +293,8 @@ public class MultiPaxos extends ComponentDefinition
                         }
                     }
                 }
-                else if (readlist.keySet().size() > (Math.floor(getN()/2) + 1))
+                // TODO Non null values in readlist or clear readlist?
+                else if (nonNullReadlistValueSize() > (Math.floor(getN()/2) + 1))
                 {
                     Accept accept = new Accept(pts, suffix(pv, prepareAck.l), prepareAck.l, t);
                     trigger(new Message(self, message.getSource(), accept), net);
@@ -316,7 +318,7 @@ public class MultiPaxos extends ComponentDefinition
 
             t = Math.max(t, accept.t_prime) + 1;
 
-            if(accept.ts != prepts)
+            if (accept.ts != prepts)
             {
                 Nack nack = new Nack(accept.ts, t);
                 trigger(new Message(self, message.getSource(), nack), net);
@@ -325,7 +327,7 @@ public class MultiPaxos extends ComponentDefinition
             {
                 ats = accept.ts;
 
-                // if length of proposer's proposed sequence is less then length of accepted sequence
+                // If length of proposer's proposed sequence is less then length of accepted sequence
                 if (accept.offs < av.size())
                 {
                     av = prefix(av, accept.offs);
@@ -358,7 +360,7 @@ public class MultiPaxos extends ComponentDefinition
                 int numberOfProcessesWithLongerOrEqAcceptedSeq = 0;
                 for (int length : accepted.values())
                 {
-                    if(length >= acceptAck.l)
+                    if (length >= acceptAck.l)
                         numberOfProcessesWithLongerOrEqAcceptedSeq++;
                 }
 
@@ -411,9 +413,9 @@ public class MultiPaxos extends ComponentDefinition
      * @param l
      * @return list with first l elements of v
      */
-    private List<Object> prefix(List<Object> v, int l)
+    private List<Operation> prefix(List<Operation> v, int l)
     {
-        List<Object> prefix = new ArrayList<>();
+        List<Operation> prefix = new ArrayList<>();
 
         int i = 0;
         while (i < v.size() && i < l)
@@ -428,14 +430,14 @@ public class MultiPaxos extends ComponentDefinition
      * @param l
      * @return list with all elements of v after the first l elements
      */
-    private List<Object> suffix(List<Object> v, int l)
+    private List<Operation> suffix(List<Operation> v, int l)
     {
         System.out.println(self + " VALUE OF l: " + l);
 
         if (l == 0)
             return v;
 
-        List<Object> suffix = new ArrayList<>();
+        List<Operation> suffix = new ArrayList<>();
 
         if (l < v.size())
         {

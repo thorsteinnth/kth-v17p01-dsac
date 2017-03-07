@@ -1,5 +1,7 @@
 package se.kth.id2203.multipaxos;
 
+import se.kth.id2203.kvstore.Operation;
+
 import java.util.List;
 
 public class ReadlistEntry
@@ -12,9 +14,9 @@ public class ReadlistEntry
     /**
      * Value suffix
      */
-    public List<Object> vsuf;
+    public List<Operation> vsuf;
 
-    public ReadlistEntry(int ts, List<Object> vsuf)
+    public ReadlistEntry(int ts, List<Operation> vsuf)
     {
         this.ts = ts;
         this.vsuf = vsuf;

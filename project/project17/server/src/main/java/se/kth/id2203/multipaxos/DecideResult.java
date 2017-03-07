@@ -1,23 +1,24 @@
 package se.kth.id2203.multipaxos;
 
+import se.kth.id2203.kvstore.Operation;
 import se.sics.kompics.KompicsEvent;
 
 import java.io.Serializable;
 
 public class DecideResult implements KompicsEvent, Serializable
 {
-    public Object object;
+    public Operation operation;
 
-    public DecideResult(Object object)
+    public DecideResult(Operation operation)
     {
-        this.object = object;
+        this.operation = operation;
     }
 
     @Override
     public String toString()
     {
         return "DecideResult{" +
-                "object=" + object +
+                "operation=" + operation +
                 '}';
     }
 }

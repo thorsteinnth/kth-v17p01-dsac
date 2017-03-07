@@ -39,6 +39,26 @@ public class GetOperation extends Operation implements KompicsEvent, Serializabl
     }
 
     @Override
+    public boolean equals(Object o)
+    {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
+
+        GetOperation operation = (GetOperation) o;
+
+        return key != null ? key.equals(operation.key) : operation.key == null;
+    }
+
+    @Override
+    public int hashCode()
+    {
+        int result = super.hashCode();
+        result = 31 * result + (key != null ? key.hashCode() : 0);
+        return result;
+    }
+
+    @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
                 .add("id", id)

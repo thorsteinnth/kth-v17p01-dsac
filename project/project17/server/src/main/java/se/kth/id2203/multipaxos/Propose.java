@@ -1,14 +1,15 @@
 package se.kth.id2203.multipaxos;
 
+import se.kth.id2203.kvstore.Operation;
 import se.sics.kompics.KompicsEvent;
 
 import java.io.Serializable;
 
 public class Propose implements KompicsEvent, Serializable
 {
-    public Object value;
+    public Operation value;
 
-    public Propose(Object value)
+    public Propose(Operation value)
     {
         this.value = value;
     }

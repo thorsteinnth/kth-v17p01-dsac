@@ -1,5 +1,6 @@
 package se.kth.id2203.multipaxos;
 
+import se.kth.id2203.kvstore.Operation;
 import se.sics.kompics.KompicsEvent;
 
 import java.io.Serializable;
@@ -16,7 +17,7 @@ public class Accept implements KompicsEvent, Serializable
     /**
      * Sequence with proposed value (only)
      */
-    public List<Object> vsuf;
+    public List<Operation> vsuf;
     /**
      * Length of proposer's proposed sequence - 1
      */
@@ -26,7 +27,7 @@ public class Accept implements KompicsEvent, Serializable
      */
     public int t_prime;
 
-    public Accept(int ts, List<Object> vsuf, int offs, int t_prime)
+    public Accept(int ts, List<Operation> vsuf, int offs, int t_prime)
     {
         this.ts = ts;
         this.vsuf = vsuf;

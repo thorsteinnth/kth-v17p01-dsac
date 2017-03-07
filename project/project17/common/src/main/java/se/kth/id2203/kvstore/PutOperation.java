@@ -20,6 +20,28 @@ public class PutOperation extends Operation implements KompicsEvent, Serializabl
     }
 
     @Override
+    public boolean equals(Object o)
+    {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
+
+        PutOperation operation = (PutOperation) o;
+
+        if (key != null ? !key.equals(operation.key) : operation.key != null) return false;
+        return value != null ? value.equals(operation.value) : operation.value == null;
+    }
+
+    @Override
+    public int hashCode()
+    {
+        int result = super.hashCode();
+        result = 31 * result + (key != null ? key.hashCode() : 0);
+        result = 31 * result + (value != null ? value.hashCode() : 0);
+        return result;
+    }
+
+    @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
                 .add("id", id)
