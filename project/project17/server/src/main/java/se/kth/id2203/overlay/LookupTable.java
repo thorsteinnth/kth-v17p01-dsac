@@ -26,7 +26,10 @@ package se.kth.id2203.overlay;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.TreeMultimap;
+
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -94,18 +97,37 @@ public class LookupTable implements NodeAssignment {
         return sb.toString();
     }
 
-    static LookupTable generate(ImmutableSet<NetAddress> nodes) {
+    static LookupTable generate(ImmutableSet<NetAddress> nodes)
+    {
         LookupTable lut = new LookupTable();
 
-        // TODO Replication degree
+        int replicationDegree = 2;
+        double replicationGroupCount = Math.floor(nodes.size()/replicationDegree);
+        if (replicationGroupCount == 0)
+            replicationGroupCount = 1;
+        List<Integer> replicationGroupKeys = new ArrayList<>();
+
+        int i = 0;
         for (NetAddress node : nodes)
         {
-            // TODO Uncomment. Putting all nodes in same group to begin with.
-            //lut.partitions.put(hashNode(node), node);
-            lut.partitions.put(0, node);
+            // First create partitions
+            if (i < replicationGroupCount)
+            {
+                int key = hashNode(node);
+                lut.partitions.put(key, node);
+                replicationGroupKeys.add(key);
+            }
+            else
+            {
+                // Distribute rest of nodes to replication groups
+                int destinationReplicationGroupIndex =  (int)(i % replicationGroupCount);
+                int key = replicationGroupKeys.get(destinationReplicationGroupIndex);
+                lut.partitions.put(key, node);
+            }
+
+            i++;
         }
 
         return lut;
     }
-
 }

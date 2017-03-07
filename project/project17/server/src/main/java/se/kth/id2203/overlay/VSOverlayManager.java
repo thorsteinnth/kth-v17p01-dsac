@@ -66,7 +66,6 @@ public class VSOverlayManager extends ComponentDefinition
     protected final Positive<Network> net = requires(Network.class);
     protected final Positive<Timer> timer = requires(Timer.class);
     protected final Positive<BestEffortBroadcastPort> beb = requires(BestEffortBroadcastPort.class);
-    //protected final Positive<ReliableBroadcastPort> rb = requires(ReliableBroadcastPort.class);
     protected final Positive<EPFDPort> epfd = requires(EPFDPort.class);
     protected final Positive<AtomicRegisterPort> nnar = requires(AtomicRegisterPort.class);
     protected final Positive<MultiPaxosPort> mpaxos = requires(MultiPaxosPort.class);
@@ -99,6 +98,7 @@ public class VSOverlayManager extends ComponentDefinition
             {
                 LOG.info("Got NodeAssignment, overlay ready.");
                 lut = (LookupTable) event.assignment;
+                LOG.debug("Node assignments:\n{}", lut);
                 sendTopologyToBroadcaster();
                 sendTopologyToFailureDetector();
                 sendTopologyToAtomicRegister();
