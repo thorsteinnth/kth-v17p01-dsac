@@ -444,8 +444,7 @@ public class MultiPaxos extends ComponentDefinition
                     if (length >= acceptAck.l)
                         numberOfProcessesWithLongerOrEqAcceptedSeq++;
                 }
-
-                // TODO The run is freezing here
+                
                 if ((pl < acceptAck.l) && (numberOfProcessesWithLongerOrEqAcceptedSeq > Math.floor(getN()/2)))
                 {
                     // Length of learned sequence is less than the size of this acceptors decided sequence
