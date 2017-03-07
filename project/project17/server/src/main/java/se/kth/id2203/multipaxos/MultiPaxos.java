@@ -530,8 +530,6 @@ public class MultiPaxos extends ComponentDefinition
      */
     private List<Operation> suffix(List<Operation> v, int l)
     {
-        System.out.println(self + " VALUE OF l: " + l);
-
         if (l == 0)
             return v;
 

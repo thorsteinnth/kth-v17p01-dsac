@@ -168,9 +168,6 @@ public class KVService extends ComponentDefinition
         {
             LOG.info(self + " - Got decide result from mpaxos: " + decideResult);
 
-            // TODO We are getting an empty array as a decide result from paxos,
-            // TODO before getting the correct result. Bug in paxos. Figure it out.
-
             if (decideResult.operation instanceof PutOperation)
             {
                 // Perform operation
