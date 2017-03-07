@@ -177,7 +177,6 @@ public class MultiPaxos extends ComponentDefinition
                 // Append to sequence
                 proposedValues.add(propose.value);
             }
-            // TODO This is fishy ... does this work? There is no equals()! Change values from objects to operations.
             else if (!pv.contains(propose.value))
             {
                 pv.add(propose.value);
