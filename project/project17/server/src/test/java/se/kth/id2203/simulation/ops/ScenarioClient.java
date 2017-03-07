@@ -38,13 +38,16 @@ public class ScenarioClient extends ComponentDefinition {
         @Override
         public void handle(Start event)
         {
-            // TODO : just testing this out for one value
-            LOG.info("OpsScenarioClient: Running start handler");
-            PutOperation op = new PutOperation(Integer.toString(2), "This is datavalue " + Integer.toString(2));
-            RouteMsg rm = new RouteMsg(op.key, op);
-            trigger(new Message(self, server, rm), net);
-            pending.put(op.id, "PUT-" + op.key);
-            LOG.info("OpsScenarioClient: Sending {}", op);
+            // TODO : just testing simple put operations for now
+            for (int i = 0; i < 10; i++)
+            {
+                PutOperation op = new PutOperation(Integer.toString(i), "This is datavalue " + Integer.toString(i));
+                RouteMsg rm = new RouteMsg(op.key, op); // don't know which partition is responsible, so ask the bootstrap server to forward it
+                trigger(new Message(self, server, rm), net);
+                pending.put(op.id, "PUT-" + op.key);
+                LOG.info("OpsScenarioClient: Sending {}", op);
+                res.put("PUT-" + op.key, "SENT");
+            }
         }
     };
 

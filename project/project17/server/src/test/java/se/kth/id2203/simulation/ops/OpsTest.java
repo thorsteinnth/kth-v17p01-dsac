@@ -58,9 +58,14 @@ public class OpsTest {
         SimulationScenario opsSequenceScenario = ScenarioGen.ops(9);
         opsSequenceScenario.simulate(LauncherComp.class);
 
-        // TODO : just testing this out
-        Assert.assertTrue(res.get("PUT-2", String.class).equals("OK") ||
-                            res.get("PUT-2", String.class).equals("ABORT"));
+        // TODO : just testing if we get OK or ABORT response for now
+        for (String key : res.keySet())
+        {
+            String val = res.get(key, String.class);
+            Assert.assertTrue(val != null &&
+                    (res.get(key, String.class).equals("OK") ||
+                    res.get(key, String.class).equals("ABORT")));
+        }
     }
 
     /*

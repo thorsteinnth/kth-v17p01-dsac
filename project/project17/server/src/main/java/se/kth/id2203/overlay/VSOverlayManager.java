@@ -122,6 +122,8 @@ public class VSOverlayManager extends ComponentDefinition
         {
             Collection<NetAddress> partition = lut.lookup(content.key);
             NetAddress target = J6.randomElement(partition);
+            // Always selecting the first node would make the Multi Paxos algorithm more efficient
+            //NetAddress target = partition.iterator().next();
             LOG.info("Forwarding message for key {} to {}", content.key, target);
             trigger(new Message(context.getSource(), target, content.msg), net);
         }
@@ -135,6 +137,8 @@ public class VSOverlayManager extends ComponentDefinition
         {
             Collection<NetAddress> partition = lut.lookup(event.key);
             NetAddress target = J6.randomElement(partition);
+            // Always selecting the first node would make the Multi Paxos algorithm more efficient
+            //NetAddress target = partition.iterator().next();
             LOG.info("Routing message for key {} to {}", event.key, target);
             trigger(new Message(self, target, event.msg), net);
         }
