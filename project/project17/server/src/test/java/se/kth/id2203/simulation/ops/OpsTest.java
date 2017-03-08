@@ -39,8 +39,8 @@ import java.util.List;
  */
 public class OpsTest {
     
-    private static final int NUM_PUT_MESSAGES = 10;
-    private static final int NUM_GET_MESSAGES = 10;
+    private static final int NUM_PUT_MESSAGES = 100;
+    private static final int NUM_GET_MESSAGES = 100;
     private final SimulationResultMap res = SimulationResultSingleton.getInstance();
 
     @Test
@@ -65,7 +65,7 @@ public class OpsTest {
     public void simplePutGetTest()
     {
         /**
-         * Test to do 10 PUT operations, then 10 GET operations and
+         * Test to do 100 PUT operations, then 100 GET operations and
          * assert that the GET operations return correct values.
          */
 
@@ -112,7 +112,7 @@ public class OpsTest {
     public void opsTest()
     {
         /**
-         * The test asserts that we have performed 10 PUT operations, 10 GET operations and
+         * The test asserts that we have performed 100 PUT operations, 100 GET operations and
          * that is has got a response for every CAS operation performed (depends on the number of successful GET ops).
          */
 
