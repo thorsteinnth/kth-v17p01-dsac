@@ -83,6 +83,29 @@ public class LookupTable implements NodeAssignment {
         return partitions.values();
     }
 
+    // TODO Find better way to tell node what replication group it is in
+    public Collection<NetAddress> getPartitionForNode(NetAddress node)
+    {
+        Integer partitionKey = getKeyForNode(node);
+        return partitions.get(partitionKey);
+    }
+
+    /**
+     * Reverse lookup in the partitions map
+     */
+    private Integer getKeyForNode(NetAddress node)
+    {
+        for (Integer partitionKey : partitions.keySet())
+        {
+            Collection<NetAddress> nodesInPartition = partitions.get(partitionKey);
+            if (nodesInPartition.contains(node))
+                return partitionKey;
+        }
+
+        LOG.error("Could not find partition for node: " + node);
+        return -1;
+    }
+
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();

@@ -104,7 +104,7 @@ public class VSOverlayManager extends ComponentDefinition
                 LOG.debug("Node assignments:\n{}", lut);
                 sendTopologyToBroadcaster();
                 sendTopologyToFailureDetector();
-                sendTopologyToAtomicRegister();
+                //sendTopologyToAtomicRegister();
                 sendTopologyToMultiPaxos();
             }
             else
@@ -189,27 +189,38 @@ public class VSOverlayManager extends ComponentDefinition
     {
         // Sending topology directly to the BEB broadcaster
         // (not sending it through the reliable broadcaster)
-        LOG.info("Sending topology to BEB broadcaster");
-        trigger(new Topology(new HashSet<>(lut.getNodes())), beb);
+        LOG.info(self + " - Sending replication group to BEB broadcaster");
+        trigger(new Topology(new HashSet<>(getReplicationGroup())), beb);
     }
 
     private void sendTopologyToFailureDetector()
     {
-        LOG.info("Sending topology to EPFD");
+        // Sending the entire topology to the failure detector
+        LOG.info(self + " - Sending topology to EPFD");
         trigger(new Topology(new HashSet<>(lut.getNodes())), epfd);
     }
 
+    /*
     private void sendTopologyToAtomicRegister()
     {
         LOG.info("Sending topology to NNAR");
         trigger(new Topology(new HashSet<>(lut.getNodes())), nnar);
     }
+    */
 
     private void sendTopologyToMultiPaxos()
     {
-        LOG.info("Sending topology to multi paxos");
-        trigger(new Topology(new HashSet<>(lut.getNodes())), mpaxos);
+        LOG.info(self + " - Sending replication group to multi paxos");
+        trigger(new Topology(new HashSet<>(getReplicationGroup())), mpaxos);
     }
+
+    private Collection<NetAddress> getReplicationGroup()
+    {
+        // TODO Find better way to do this.
+        // This should perhaps be an explicit message from bootstrap instead
+        return lut.getPartitionForNode(self);
+    }
+
 
     {
         subscribe(initialAssignmentHandler, boot);
