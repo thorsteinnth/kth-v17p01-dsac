@@ -184,6 +184,7 @@ public class KVService extends ComponentDefinition
                     // I am the server that is responsible for this operation.
                     // Should notify client.
                     trigger(new Message(self, headPendingOperation.clientAddress, new OpResponse(operation.id, Code.OK, oldValue)), net);
+                    LOG.debug(self + " - Response sent to client: " + headPendingOperation.clientAddress);
                     removePendingOperationAndSendNextOp();
                 }
             }
@@ -207,6 +208,7 @@ public class KVService extends ComponentDefinition
                     else
                         trigger(new Message(self, headPendingOperation.clientAddress, new OpResponse(operation.id, Code.OK, value)), net);
 
+                    LOG.debug(self + " - Response sent to client: " + headPendingOperation.clientAddress);
                     removePendingOperationAndSendNextOp();
                 }
             }
@@ -251,6 +253,7 @@ public class KVService extends ComponentDefinition
                         trigger(new Message(self, headPendingOperation.clientAddress, opResponse), net);
                     }
 
+                    LOG.debug(self + " - Response sent to client: " + headPendingOperation.clientAddress);
                     removePendingOperationAndSendNextOp();
                 }
             }
@@ -282,6 +285,7 @@ public class KVService extends ComponentDefinition
                         null
                 );
                 trigger(new Message(self, headPendingOperation.clientAddress, opResponse), net);
+                LOG.debug(self + " - Response sent to client: " + headPendingOperation.clientAddress);
             }
 
             removePendingOperationAndSendNextOp();
@@ -299,6 +303,8 @@ public class KVService extends ComponentDefinition
     private void addPendingOperationAndSendIfFirst(Operation operation, NetAddress clientAddress)
     {
         pendingOperations.add(new PendingOperation(clientAddress, operation));
+        LOG.debug(self + " - Added pending operation: " + clientAddress + " - " + operation);
+        printPendingOperations();
 
         if (pendingOperations.size() == 1)
             trigger(new Propose(operation), mpaxos);
@@ -312,6 +318,7 @@ public class KVService extends ComponentDefinition
     {
         PendingOperation removedOperation = pendingOperations.remove();
         LOG.debug(self + " - Removed operation from pending: " + removedOperation);
+        printPendingOperations();
 
         PendingOperation nextPendingOperation = pendingOperations.peek();
         if (nextPendingOperation != null)
@@ -329,6 +336,19 @@ public class KVService extends ComponentDefinition
         {
             String value = datastore.get(key);
             sb.append("[" + key + " - " + value + "]");
+        }
+
+        LOG.debug(self.toString() + " - " + sb.toString());
+    }
+
+    private void printPendingOperations()
+    {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Pending operations - size: " + pendingOperations.size() + " \n");
+
+        for (PendingOperation pendingOperation : pendingOperations)
+        {
+            sb.append("[" + pendingOperation.toString() + "]");
         }
 
         LOG.debug(self.toString() + " - " + sb.toString());
