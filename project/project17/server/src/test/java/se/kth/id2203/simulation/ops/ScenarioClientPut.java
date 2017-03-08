@@ -38,7 +38,7 @@ public class ScenarioClientPut extends ComponentDefinition {
         @Override
         public void handle(Start event) {
 
-            int messages = res.get("messages", Integer.class);
+            int messages = res.get("put_messages", Integer.class);
 
             for (int i = 0; i < messages; i++)
             {

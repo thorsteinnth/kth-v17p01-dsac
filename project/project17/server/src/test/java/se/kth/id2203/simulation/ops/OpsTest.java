@@ -29,7 +29,9 @@ import se.kth.id2203.simulation.SimulationResultMap;
 import se.kth.id2203.simulation.SimulationResultSingleton;
 import se.sics.kompics.simulator.SimulationScenario;
 import se.sics.kompics.simulator.run.LauncherComp;
-import sun.rmi.runtime.Log;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  *
@@ -41,20 +43,77 @@ public class OpsTest {
     private static final int NUM_GET_MESSAGES = 10;
     private final SimulationResultMap res = SimulationResultSingleton.getInstance();
 
-    // TODO Create tests for mpaxos
-    // The tests should probably check that for every operation we send to paxos, the operation is either put into
-    // the sequence (returned from paxos) or aborted (i.e. get abort message from paxos).
-    // All operations that we get from paxos should be in the same order on all processes, i.e. the decided sequence
-    // should be the same for all processes (so we get atomic multicast functionality).
-    // Abort messages are a valid result I think, they just mean that they couldn't reach a consensus.
-    // The application should then just decide how it wants to handle the abort messages (try again, abort the op ...)
+    @Test
+    public void simplePutTest()
+    {
+        res.clear();
+
+        long seed = 123;
+        SimulationScenario.setSeed(seed);
+        SimulationScenario simplePutScenario = ScenarioGen.simplePut(9);
+        res.put("put_messages", NUM_PUT_MESSAGES);
+        simplePutScenario.simulate(LauncherComp.class);
+
+        for (int i = 0; i < NUM_PUT_MESSAGES; i++)
+        {
+            String result = res.get("PUT-" + Integer.toString(i), String.class);
+            Assert.assertTrue(result != null && (result.equals("OK") || result.equals("ABORT")));
+        }
+    }
+
+    @Test
+    public void simplePutGetTest()
+    {
+        /**
+         * Test to do 10 PUT operations, then 10 GET operations and
+         * assert that the GET operations return correct values.
+         */
+
+        res.clear();
+
+        long seed = 123;
+        SimulationScenario.setSeed(seed);
+        SimulationScenario simpleBootScenario = ScenarioGen.simplePutGet(9);
+        res.put("put_messages", NUM_PUT_MESSAGES);
+        res.put("get_messages", NUM_GET_MESSAGES);
+        simpleBootScenario.simulate(LauncherComp.class);
+
+        List<Integer> keysToCheck = new ArrayList<>();
+
+        for (int i = 0; i < NUM_PUT_MESSAGES; i++)
+        {
+            String result = res.get("PUT-" + Integer.toString(i), String.class);
+            Assert.assertTrue(result != null && (result.equals("OK") || result.equals("ABORT")));
+
+            if (result != null && result.equals("OK"))
+                keysToCheck.add(i);
+        }
+
+        for (int i = 0; i < NUM_GET_MESSAGES; i++)
+        {
+            String result = res.get(Integer.toString(i), String.class);
+            Assert.assertTrue(result != null);
+
+            if (keysToCheck.contains(i))
+            {
+                // We know that the PUT operation worked for that key, let's assert that the GET operation works
+                // as expected
+                Assert.assertTrue(result.equals("This is datavalue " + Integer.toString(i)) || result.equals("ABORT"));
+            }
+            else
+            {
+                // We know that there is no value for this key, lets check if we got the right status
+                Assert.assertTrue(result.equals("NOT_FOUND") || result.equals("ABORT"));
+            }
+        }
+    }
 
     @Test
     public void opsTest()
     {
         /**
-         * The test asserts that have hav performed 10 PUT operations, 10 GET operations and
-         * gotten a response for each CAS operation we performed (depends on the number of successful GET ops).
+         * The test asserts that we have performed 10 PUT operations, 10 GET operations and
+         * that is has got a response for every CAS operation performed (depends on the number of successful GET ops).
          */
 
         res.clear();
@@ -93,57 +152,4 @@ public class OpsTest {
 
         Assert.assertEquals(numberOfCasOpsSent, numberOfCasOpsConfirmed);
     }
-
-    /*
-    @Test
-    public void simpleOpsTest()
-    {
-        // Test for put and get operations, first put then get.
-        // (we do not have any pre loaded data at the moment)
-
-        res.clear();
-
-        long seed = 123;
-        SimulationScenario.setSeed(seed);
-        SimulationScenario simpleBootScenario = ScenarioGen.simpleOps(3);
-        res.put("messages", NUM_MESSAGES);
-        simpleBootScenario.simulate(LauncherComp.class);
-
-        System.out.println("simpleOpsTest - RESULTMAP AFTER RUN: " + res.toString());
-
-        for (int i = 0; i < NUM_MESSAGES; i++)
-        {
-            Assert.assertEquals("OK", res.get("PUT-" + Integer.toString(i), String.class));
-        }
-
-        // We have (NUM_MESSAGES-1) GET operations that should be ok
-        for (int i = 0; i < NUM_MESSAGES-1; i++)
-        {
-            Assert.assertEquals("OK", res.get("GET-" + Integer.toString(i), String.class));
-        }
-
-        // And one more that should be not found
-        Assert.assertEquals("NOT_FOUND", res.get("GET-" + "NONSENSE", String.class));
-    }
-
-    @Test
-    public void simplePutTest()
-    {
-        res.clear();
-
-        long seed = 123;
-        SimulationScenario.setSeed(seed);
-        SimulationScenario simplePutScenario = ScenarioGen.simplePut(4);
-
-        res.put("messages", NUM_MESSAGES);
-        simplePutScenario.simulate(LauncherComp.class);
-
-        System.out.println("simplePutTest - RESULTMAP AFTER RUN: " + res.toString());
-
-        for (int i = 0; i < NUM_MESSAGES; i++)
-        {
-            Assert.assertEquals("OK", res.get("PUT-" + Integer.toString(i), String.class));
-        }
-    }
-    */
 }
