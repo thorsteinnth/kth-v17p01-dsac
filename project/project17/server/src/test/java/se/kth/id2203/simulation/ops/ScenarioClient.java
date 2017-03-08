@@ -2,6 +2,8 @@ package se.kth.id2203.simulation.ops;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import se.kth.id2203.kvstore.CASOperation;
+import se.kth.id2203.kvstore.GetOperation;
 import se.kth.id2203.kvstore.OpResponse;
 import se.kth.id2203.kvstore.PutOperation;
 import se.kth.id2203.networking.Message;
@@ -38,15 +40,35 @@ public class ScenarioClient extends ComponentDefinition {
         @Override
         public void handle(Start event)
         {
-            // TODO : just testing simple put operations for now
-            for (int i = 0; i < 10; i++)
+
+            /**
+             * The test performs 10 PUT operations, then 10 GET operations.
+             * For each successful GET operation (OK response) we perform a CAS operation and
+             * keep count of how many CAS operations we have done.
+             */
+
+            int putMessages = res.get("put_messages", Integer.class);
+            int getMessages = res.get("get_messages", Integer.class);
+            res.put("cas_messages", 0);
+
+            for (int i = 0; i < putMessages; i++)
             {
-                PutOperation op = new PutOperation(Integer.toString(i), "This is datavalue " + Integer.toString(i));
-                RouteMsg rm = new RouteMsg(op.key, op); // don't know which partition is responsible, so ask the bootstrap server to forward it
+                PutOperation put = new PutOperation(Integer.toString(i), Integer.toString(i));
+                RouteMsg rm = new RouteMsg(put.key, put);
                 trigger(new Message(self, server, rm), net);
-                pending.put(op.id, "PUT-" + op.key);
-                LOG.info("OpsScenarioClient: Sending {}", op);
-                res.put("PUT-" + op.key, "SENT");
+                pending.put(put.id, "PUT-" + put.key);
+                LOG.info("OpsScenarioClient: Sending {}", put);
+                res.put("PUT-" + put.key, "SENT");
+            }
+
+            for (int i = 0; i < getMessages; i++)
+            {
+                GetOperation get = new GetOperation(Integer.toString(i));
+                RouteMsg rm = new RouteMsg(get.key, get);
+                trigger(new Message(self, server, rm), net);
+                pending.put(get.id, "GET-" + get.key);
+                LOG.info("OpsScenarioClient: Sending {}", get);
+                res.put("GET-" + get.key, "SENT");
             }
         }
     };
@@ -60,6 +82,20 @@ public class ScenarioClient extends ComponentDefinition {
             String key = pending.remove(content.id);
             if (key != null)
             {
+                if (key.contains("GET") && (content.result != null) && content.status.name().equals("OK"))
+                {
+                    // If the key is "GET-2" then the content.result should be "2"
+                    CASOperation cas = new CASOperation(content.result, content.result, "newVal " + content.result);
+                    RouteMsg rm = new RouteMsg(cas.key, cas);
+                    trigger(new Message(self, server, rm), net);
+                    pending.put(cas.id, "CAS-" + cas.key);
+                    LOG.info("OpsScenarioClient: Sending {}", cas);
+                    res.put("CAS-" + cas.key, "SENT");
+
+                    int currentNumberOfCasOpsSent = res.get("cas_messages", Integer.class);
+                    res.put("cas_messages", ++currentNumberOfCasOpsSent);
+                }
+
                 res.put(key, content.status.toString());
             }
             else
