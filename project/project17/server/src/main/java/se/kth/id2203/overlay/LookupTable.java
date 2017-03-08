@@ -83,6 +83,25 @@ public class LookupTable implements NodeAssignment {
         return partitions.values();
     }
 
+    public void removeNode(NetAddress node)
+    {
+        Integer partitionKey = getKeyForNode(node);
+
+        if (partitions.get(partitionKey).size() == 1)
+        {
+            // We are about to lose the last node in the partition
+
+            // TODO
+            // Should give other partitions the responsibility for this partition's
+            // data. The threshold for doing this might be higher.
+            // e.g. if we want to maintain replication degree 3 - then we might move responsibility
+            // for the data in this partition to some other partition if we have fewer than 3 nodes left.
+            // Or just take this partition offline - so it doesn't respond to any requests (at least not writes)
+        }
+
+        partitions.remove(partitionKey, node);
+    }
+
     // TODO Find better way to tell node what replication group it is in
     public Collection<NetAddress> getPartitionForNode(NetAddress node)
     {
