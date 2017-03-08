@@ -37,7 +37,8 @@ import sun.rmi.runtime.Log;
  */
 public class OpsTest {
     
-    private static final int NUM_MESSAGES = 10;
+    private static final int NUM_PUT_MESSAGES = 10;
+    private static final int NUM_GET_MESSAGES = 10;
     private final SimulationResultMap res = SimulationResultSingleton.getInstance();
 
     // TODO Create tests for mpaxos
@@ -51,21 +52,46 @@ public class OpsTest {
     @Test
     public void opsTest()
     {
+        /**
+         * The test asserts that have hav performed 10 PUT operations, 10 GET operations and
+         * gotten a response for each CAS operation we performed (depends on the number of successful GET ops).
+         */
+
         res.clear();
 
         long seed = 123;
         SimulationScenario.setSeed(seed);
         SimulationScenario opsSequenceScenario = ScenarioGen.ops(9);
+        res.put("put_messages", NUM_PUT_MESSAGES);
+        res.put("get_messages", NUM_GET_MESSAGES);
         opsSequenceScenario.simulate(LauncherComp.class);
 
-        // TODO : just testing if we get OK or ABORT response for now
-        for (String key : res.keySet())
+        for (int i = 0; i < NUM_PUT_MESSAGES; i++)
         {
-            String val = res.get(key, String.class);
-            Assert.assertTrue(val != null &&
-                    (res.get(key, String.class).equals("OK") ||
-                    res.get(key, String.class).equals("ABORT")));
+            String result = res.get("PUT-" + Integer.toString(i), String.class);
+            Assert.assertTrue(result != null && (result.equals("OK") || result.equals("ABORT")));
         }
+
+        for (int i = 0; i < NUM_GET_MESSAGES; i++)
+        {
+            String result = res.get("GET-" + Integer.toString(i), String.class);
+            Assert.assertTrue(result != null && (result.equals("OK") || result.equals("NOT_FOUND") || result.equals("ABORT")));
+        }
+
+        int numberOfCasOpsSent = res.get("cas_messages", Integer.class);
+        int numberOfCasOpsConfirmed = 0;
+        for (int i = 0; i < NUM_GET_MESSAGES; i++)
+        {
+            String result = res.get("CAS-" + Integer.toString(i), String.class);
+
+            if (result != null)
+            {
+                Assert.assertTrue(result.equals("OK") || result.equals("ABORT"));
+                numberOfCasOpsConfirmed++;
+            }
+        }
+
+        Assert.assertEquals(numberOfCasOpsSent, numberOfCasOpsConfirmed);
     }
 
     /*
