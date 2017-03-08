@@ -143,7 +143,7 @@ public class LookupTable implements NodeAssignment {
     {
         LookupTable lut = new LookupTable();
 
-        int replicationDegree = 2;
+        int replicationDegree = 3;
         double replicationGroupCount = Math.floor(nodes.size()/replicationDegree);
         if (replicationGroupCount == 0)
             replicationGroupCount = 1;
