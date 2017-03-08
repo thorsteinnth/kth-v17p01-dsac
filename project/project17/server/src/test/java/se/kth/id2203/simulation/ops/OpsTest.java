@@ -39,8 +39,8 @@ import java.util.List;
  */
 public class OpsTest {
     
-    private static final int NUM_PUT_MESSAGES = 10;
-    private static final int NUM_GET_MESSAGES = 10;
+    private static final int NUM_PUT_MESSAGES = 100;
+    private static final int NUM_GET_MESSAGES = 100;
     private final SimulationResultMap res = SimulationResultSingleton.getInstance();
 
     @Test
