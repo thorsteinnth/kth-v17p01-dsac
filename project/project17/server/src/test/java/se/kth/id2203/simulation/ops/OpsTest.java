@@ -41,6 +41,7 @@ public class OpsTest {
     private static final int NUM_GET_MESSAGES = 10;
     private final SimulationResultMap res = SimulationResultSingleton.getInstance();
 
+    // TODO Edit this comment
     // TODO Create tests for mpaxos
     // The tests should probably check that for every operation we send to paxos, the operation is either put into
     // the sequence (returned from paxos) or aborted (i.e. get abort message from paxos).
