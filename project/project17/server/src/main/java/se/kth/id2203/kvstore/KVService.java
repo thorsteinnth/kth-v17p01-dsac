@@ -45,8 +45,6 @@ import java.util.Queue;
 
 public class KVService extends ComponentDefinition
 {
-    // TODO Remove NNAR code when paxos is up and running.
-
     private final static Logger LOG = LoggerFactory.getLogger(KVService.class);
 
     // Ports
