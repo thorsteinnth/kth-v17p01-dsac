@@ -85,9 +85,9 @@ public class VSOverlayManager extends ComponentDefinition
         @Override
         public void handle(GetInitialAssignments event)
         {
-            LOG.info("Generating LookupTable...");
+            LOG.info(self + " - Generating lookup table...");
             LookupTable lut = LookupTable.generate(event.nodes);
-            LOG.debug("Generated assignments:\n{}", lut);
+            LOG.debug(self + " - Generated lookup table:\n{}", lut);
             trigger(new InitialAssignments(lut), boot);
         }
     };
@@ -99,9 +99,9 @@ public class VSOverlayManager extends ComponentDefinition
         {
             if (event.assignment instanceof LookupTable)
             {
-                LOG.info("Got NodeAssignment, overlay ready.");
+                LOG.info(self + " - Got NodeAssignment, overlay ready.");
                 lut = (LookupTable) event.assignment;
-                LOG.debug("Node assignments:\n{}", lut);
+                LOG.debug(self + " - Lookup table:\n{}", lut);
                 sendTopologyToBroadcaster();
                 sendTopologyToFailureDetector();
                 //sendTopologyToAtomicRegister();
@@ -109,7 +109,7 @@ public class VSOverlayManager extends ComponentDefinition
             }
             else
             {
-                LOG.error("Got invalid NodeAssignment type. Expected: LookupTable; Got: {}", event.assignment.getClass());
+                LOG.error(self + " - Got invalid NodeAssignment type. Expected: LookupTable; Got: {}", event.assignment.getClass());
             }
         }
     };
@@ -124,7 +124,7 @@ public class VSOverlayManager extends ComponentDefinition
             NetAddress target = J6.randomElement(partition);
             // Always selecting the first node would make the Multi Paxos algorithm more efficient
             //NetAddress target = partition.iterator().next();
-            LOG.info("Forwarding message for key {} to {}", content.key, target);
+            LOG.info(self + " - Forwarding message for key {} to {}", content.key, target);
             trigger(new Message(context.getSource(), target, content.msg), net);
         }
     };
@@ -139,7 +139,7 @@ public class VSOverlayManager extends ComponentDefinition
             NetAddress target = J6.randomElement(partition);
             // Always selecting the first node would make the Multi Paxos algorithm more efficient
             //NetAddress target = partition.iterator().next();
-            LOG.info("Routing message for key {} to {}", event.key, target);
+            LOG.info(self + " - Routing message for key {} to {}", event.key, target);
             trigger(new Message(self, target, event.msg), net);
         }
     };
@@ -152,12 +152,12 @@ public class VSOverlayManager extends ComponentDefinition
         {
             if (lut != null)
             {
-                LOG.debug("Accepting connection request from {}", context.getSource());
+                LOG.debug(self + " - Accepting connection request from {}", context.getSource());
                 int size = lut.getNodes().size();
                 trigger(new Message(self, context.getSource(), content.ack(size)), net);
             } else
             {
-                LOG.info("Rejecting connection request from {}, as system is not ready, yet.", context.getSource());
+                LOG.info(self + " - Rejecting connection request from {}, as system is not ready, yet.", context.getSource());
             }
         }
     };
@@ -166,20 +166,24 @@ public class VSOverlayManager extends ComponentDefinition
     protected final Handler<Suspect> suspectHandler = new Handler<Suspect>() {
 
         @Override
-        public void handle(Suspect suspect) {
-            LOG.debug("VSOverlay Manager: got a suspected process: " + suspect.getAddress());
-
-            // TODO : Send updated topology to MPaxos
+        public void handle(Suspect suspect)
+        {
+            LOG.debug(self + " - EPFD Suspected: " + suspect.getAddress());
+            lut.removeNode(suspect.getAddress());
+            LOG.debug(self + " - Lookup table:\n{}", lut);
+            sendTopologyToBroadcaster();
+            sendTopologyToMultiPaxos();
         }
     };
 
     protected final Handler<Restore> restoreHandler = new Handler<Restore>() {
 
         @Override
-        public void handle(Restore restore) {
-            LOG.debug("VSOverlay Manager: got a restored process: " + restore.getAddress());
-
-            // TODO : Send updated topology to MPaxos
+        public void handle(Restore restore)
+        {
+            LOG.debug(self + " - EPFD Restore process: " + restore.getAddress());
+            // TODO Restore process, put it back into the correct place in the topology
+            // Here we would have to also make sure that the restore process has the correct data
         }
     };
 

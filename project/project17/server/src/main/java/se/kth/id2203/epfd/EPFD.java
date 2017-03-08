@@ -43,7 +43,7 @@ public class EPFD extends ComponentDefinition{
         @Override
         public void handle(Start event) {
 
-            LOG.info("Starting EPFD on {}", self);
+            LOG.info(self + " - Starting EPFD on {}", self);
             seqNum = 0;
             alive = new HashSet<>();
             suspected = new HashSet<>();
@@ -58,7 +58,7 @@ public class EPFD extends ComponentDefinition{
         @Override
         public void handle(Topology e)
         {
-            LOG.info("Received topology: " + e.nodes);
+            LOG.info(self + " - Received topology: " + e.nodes);
             topology = e.nodes;
 
             alive.addAll(topology);
@@ -96,12 +96,12 @@ public class EPFD extends ComponentDefinition{
             for (NetAddress process : topology) {
 
                 if(!alive.contains(process) && !suspected.contains(process)) {
-                    LOG.info("EPFD suspects: " + process.toString());
+                    LOG.info(self + " - EPFD suspects: " + process.toString());
                     suspected.add(process);
                     trigger(new Suspect(process), epfd);
                 }
                 else if (alive.contains(process) && suspected.contains(process)) {
-                    LOG.info("EPFD restores: " + process.toString());
+                    LOG.info(self + " - EPFD restores: " + process.toString());
                     suspected.remove(process);
                     trigger(new Restore(process), epfd);
                 }
