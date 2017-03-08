@@ -113,6 +113,7 @@ public class BootstrapServer extends ComponentDefinition {
 
         @Override
         public void handle(CheckIn content, Message context) {
+            LOG.debug(self + " - Received check in message from: " + context.getSource());
             active.add(context.getSource());
         }
     };
@@ -120,6 +121,7 @@ public class BootstrapServer extends ComponentDefinition {
     protected final ClassMatchedHandler<Ready, Message> readyHandler = new ClassMatchedHandler<Ready, Message>() {
         @Override
         public void handle(Ready content, Message context) {
+            LOG.debug(self + " - Received ready message from: " + context.getSource());
             ready.add(context.getSource());
         }
     };
