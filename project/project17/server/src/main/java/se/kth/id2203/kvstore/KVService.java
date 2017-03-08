@@ -57,10 +57,7 @@ public class KVService extends ComponentDefinition
     // Fields
     final NetAddress self = config().getValue("id2203.project.address", NetAddress.class);
     private HashMap<String, String> datastore;
-    /**
-     * Pending operations that are being processed by atomic register.
-     * */
-    // We are storing the pending operations in a queue. Only one operation at a time active in mpaxos
+    // We are storing the pending operations in a queue. Only one operation at a time active in mpaxos.
     // Doing it this way so we know what operation is aborted, instead of changing the paxos algorithm
     // to carry the operation ID with the abort message.
     private Queue<PendingOperation> pendingOperations;
