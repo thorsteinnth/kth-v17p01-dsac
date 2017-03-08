@@ -266,7 +266,7 @@ public abstract class ScenarioGen {
     /**
      * Test for put and get operations, first put then get.
      * */
-    public static SimulationScenario simpleOps(final int servers) {
+    public static SimulationScenario simplePutGet(final int servers) {
 
 
         return new SimulationScenario() {

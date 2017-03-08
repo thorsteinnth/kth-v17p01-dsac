@@ -69,26 +69,17 @@ public class ScenarioClientGet extends ComponentDefinition
         @Override
         public void handle(Start event)
         {
-            int messages = res.get("messages", Integer.class);
+            int messages = res.get("get_messages", Integer.class);
 
-            // Let's send (messages-1) ops that should be OK
-            for (int i = 0; i < messages - 1; i++)
+            for (int i = 0; i < messages; i++)
             {
                 GetOperation op = new GetOperation(Integer.toString(i));
-                RouteMsg rm = new RouteMsg(op.key, op); // don't know which partition is responsible, so ask the bootstrap server to forward it
+                RouteMsg rm = new RouteMsg(op.key, op);
                 trigger(new Message(self, server, rm), net);
-                pending.put(op.id, "GET-" + op.key);
+                pending.put(op.id, op.key);
                 LOG.info("Sending {}", op);
-                res.put("GET-" + op.key, "SENT");
+                res.put(op.key, "SENT");
             }
-
-            // Send one more that should be not found
-            GetOperation op = new GetOperation("NONSENSE");
-            RouteMsg rm = new RouteMsg(op.key, op); // don't know which partition is responsible, so ask the bootstrap server to forward it
-            trigger(new Message(self, server, rm), net);
-            pending.put(op.id, "GET-" + op.key);
-            LOG.info("Sending {}", op);
-            res.put("GET-" + op.key, "SENT");
         }
     };
 
@@ -101,7 +92,14 @@ public class ScenarioClientGet extends ComponentDefinition
             String key = pending.remove(content.id);
             if (key != null)
             {
-                res.put(key, content.status.toString());
+                if (content.status.name().equals("OK"))
+                {
+                    res.put(key, content.result);
+                }
+                else
+                {
+                    res.put(key, content.status.name());
+                }
             }
             else
             {
