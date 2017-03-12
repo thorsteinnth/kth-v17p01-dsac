@@ -17,7 +17,7 @@ The project can be built and run using the commands given below, or it can be im
 Build the project with
 
 ```
-maven clean install
+mvn clean install
 ```
 
 ### Running
