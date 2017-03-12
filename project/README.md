@@ -1,4 +1,5 @@
 KTH V17P01
+Due 17.03.12
 
 Distributed Systems Advanced Course
 
@@ -6,6 +7,7 @@ Project
 
 
 Fannar Magnusson (fannar@kth.se)
+
 Thorsteinn Thorri Sigurdsson (ttsi@kth.se)
 
 The project can be built and run using the commands given below, or it can be imported into IntelliJ where the run configurations for the client and servers are included.
